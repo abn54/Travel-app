@@ -1,0 +1,3 @@
+# Project instructions
+
+Keep `frontend/` (Vue) and `backend/` (FastAPI) separate. The Part 1 backend reads the supplied `hotels.csv` and `trips.csv`, joins them through `hotel_id`, and returns case-insensitive hotel-name or city search results through FastAPI. Open supplied CSVs with `utf-8-sig` because their first header contains a UTF-8 byte-order mark. For Part 2, inspect all four supplied CSV files before creating SQLite tables; preserve text IDs and seed only a new database. All frontend data actions must go through FastAPI. Run the smoke test in `prompts/start-up-prompts.md` after relevant changes. Keep README, docs, prompts, handoff, and report evidence aligned with tested behavior.
