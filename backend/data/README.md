@@ -9,7 +9,7 @@ This directory contains the instructor-supplied fictional classroom data pack. I
 - `users.csv`: one demo traveler per `user_id`.
 - `bookings.csv`: one simulated booking per `booking_id`; `user_id` and `trip_id` connect it to a traveler and stay.
 
-The Part 1 CSV search reads only `hotels.csv` and `trips.csv`. The user and booking files remain unchanged for Part 2 SQLite seeding.
+Part 1 read `hotels.csv` and `trips.csv` directly. Part 2 creates a new SQLite database from all four files. Once seeded, application reads and writes use SQLite; the CSV files are not re-imported on a later startup.
 
 The CSV files use UTF-8 with a byte-order mark in the original data pack. The backend opens them with `utf-8-sig` so both the supplied files and ordinary UTF-8 CSV files read correctly.
 

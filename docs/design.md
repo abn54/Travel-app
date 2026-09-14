@@ -1,7 +1,7 @@
-# Expedia Part 1 design note
+# Expedia Part 2 design note
 
-The Vue frontend presents one hotel-name-or-city search field, a Search button, and a plain table of matching hotel stays. It owns temporary interface state and sends the search request to FastAPI.
+The Vue frontend presents one hotel-name-or-city search field, a plain table of matching hotel stays, and a Book button for each stay. It owns temporary interface state only. A selected stay and traveler are sent to FastAPI to create a simulated booking. The same interface requests booking history, sends a cancel request that retains the record, and sends a delete request for a test booking.
 
-FastAPI reads the instructor-supplied `hotels.csv` and `trips.csv`, connects a trip to its hotel through `hotel_id`, filters the joined records by hotel name or city, calculates the number of nights and estimated stay price, and returns the matching records to Vue. A no-result response is an empty list, which Vue presents as a clear message.
+FastAPI owns database initialization and CRUD. When `travel.db` does not exist, it creates SQLite tables for hotels, trips, users, bookings, and the next generated booking number; then it seeds the original four CSV files exactly once. The FastAPI search and history routes join SQLite rows to return display-ready stays and bookings. Create assigns a persistent unique `B###` ID, update changes `status` to `cancelled`, and delete removes only the selected booking.
 
-CSV files are the Part 1 data source. `users.csv` and `bookings.csv` are retained unchanged for Part 2. SQLite and CRUD are intentionally deferred to Part 2.
+SQLite is the Part 2 application data source. The CSV files remain as the initial seed source only. Each API request opens its own SQLite connection with foreign-key checks enabled, so browser refreshes and service restarts continue to show saved changes without duplicate starter records.
