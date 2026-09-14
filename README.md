@@ -1,6 +1,6 @@
 # Expedia
 
-Expedia is a local Vue + FastAPI Part 1 travel application for searching simulated hotel stays by hotel name or city.
+Expedia is a local Vue + FastAPI travel application for searching hotel stays, making simulated bookings, and reviewing booking history.
 
 ## Run locally
 
@@ -9,22 +9,24 @@ Expedia is a local Vue + FastAPI Part 1 travel application for searching simulat
 3. In `frontend/`, run `npm install`, then `npm run dev`.
 4. Open the local Vite URL (usually `http://localhost:5173`).
 
+On the first backend startup, the app creates `backend/travel.db` from the four supplied CSV files. Later startups use the existing SQLite data without re-importing the starter rows.
+
 ## Features
 
-- The supplied `hotels.csv` and `trips.csv` are joined through `hotel_id`.
-- FastAPI returns matching stays to a simple Vue table.
-- A clear no-results message appears for unmatched hotel names or cities.
-- The supplied `users.csv` and `bookings.csv` are retained unchanged for the later SQLite work.
+- Search runs against SQLite hotel and trip records joined through `hotel_id`.
+- The frontend can create a booking for any supplied traveler and offered stay.
+- Booking history reads from SQLite and lets the user cancel a booking while retaining it or delete a test booking.
+- The supplied CSVs seed a new database once; existing bookings persist across refreshes and restarts.
 
-## Part 1 checks
+## Part 2 checks
 
-- Search `Valley Trail Inn`; one matching stay (`T008`) should appear.
-- Search `Boston`; four matching stays should appear.
-- Search `Miami`; the no-results message should appear.
+- Search `Valley Trail Inn`, select `T008`, and create a booking for Demo Traveler 6.
+- Refresh the browser, cancel the new booking, and confirm that its cancelled row remains in history.
+- Create a second test booking, delete it, then restart both services and confirm that the cancelled booking remains while the deleted booking does not return.
 
 ## Project context
 
 - [Design note](docs/design.md)
 - [Current handoff](handoffs/current.md)
 - [Selected prompts](prompts/selected-prompts.md)
-- [Part 1 report template](report.md)
+- [Part 2 report](report.md)

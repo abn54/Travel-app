@@ -1,24 +1,28 @@
-# Expedia — Part 1
+# Expedia — Part 2
 
 ## Repository and commit
 
 Repository URL: [https://github.com/abn54/Travel-app](https://github.com/abn54/Travel-app).
 
-Exact submitted commit: `bb566a189aebf1d58b5c4ded2aadb622374c46ad`.
+Part 1 checkpoint preserved: `bb566a189aebf1d58b5c4ded2aadb622374c46ad`.
+
+Exact submitted Part 2 commit: pending final merge to `main`.
 
 ## Implementation
 
-Expedia uses a Vue frontend for one hotel-name-or-city search input, a Search button, and a plain table of matching offered stays. FastAPI reads the instructor-supplied `hotels.csv` and `trips.csv`, connects each trip to its hotel through `hotel_id`, matches hotel names or cities without regard to capitalization, calculates nights and estimated stay price, and returns the joined records to Vue. The supplied `users.csv` and `bookings.csv` remain unchanged for Part 2.
+Since Part 1, Expedia now creates `travel.db` from all four supplied CSV files only when no database exists. FastAPI owns the SQLite schema, initial seed, search joins, traveler lookup, and booking CRUD. The Vue frontend searches stays, lets a user choose a traveler and create a booking, reads booking history, cancels a booking without deleting it, and deletes a test booking. After seeding, all application reads and writes use SQLite.
 
 ## Verification
 
 | Action | Expected result | Observed result |
 | --- | --- | --- |
-| Search Valley Trail Inn | One matching offered stay, `T008`, appears in the labeled table. | The browser showed the `T008` Valley Trail Inn row with its dates, nights, nightly rate, and estimated stay price. FastAPI returned the same joined record. |
-| Search Boston | Four matching offered stays, `T001`, `T002`, `T009`, and `T010`, appear in the labeled table. | The browser showed four data rows; FastAPI returned the same four trip IDs. |
-| Search Miami | A clear no-results message appears. | The browser showed “No hotel stays match ‘Miami’. Try another hotel name or city.” FastAPI returned an empty list. |
+| Create through the frontend | Choose `T008` and Demo Traveler 6, then create a new booking. | The browser created `B008` and showed it as confirmed in Demo Traveler 6’s history. |
+| Read after browser refresh | Refresh the frontend and view booking history. | `B008` remained visible in history after the refresh. |
+| Update through the frontend | Cancel `B008` without removing the record. | The browser changed `B008` to `cancelled` and retained its history row. |
+| Delete through the frontend | Create test booking `B009`, then delete it. | The browser removed `B009`; it was absent from history after deletion. |
+| Restart persistence | Restart the frontend and backend, then read the database and browser history. | `B008` remained cancelled, `B009` remained absent, and SQLite had seven bookings: the six seeds plus `B008`, with no duplicate seed rows. |
 
-Screenshots: [successful search](docs/screenshots/successful-search.png) and [no-results search](docs/screenshots/no-results-search.png).
+Screenshots: [booking form](docs/screenshots/part2-booking-form.png) and [persisted booking history](docs/screenshots/part2-booking-history.png).
 
 ## Project context and next steps
 
@@ -28,4 +32,4 @@ Screenshots: [successful search](docs/screenshots/successful-search.png) and [no
 - [Selected prompts](prompts/selected-prompts.md)
 - [Current handoff](handoffs/current.md)
 
-Part 1 is complete with the supplied CSV data. SQLite, simulated booking, booking history, and CRUD are intentionally deferred to Part 2.
+Remaining limitation: this local classroom simulation has no authentication, payments, live inventory, or real reservations. Next: merge the reviewed Part 2 feature branch to `main`, push it, and upload this updated `report.md` to the Part 2 submission.
