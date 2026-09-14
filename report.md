@@ -6,7 +6,7 @@ Repository URL: [https://github.com/abn54/Travel-app](https://github.com/abn54/T
 
 Part 1 checkpoint preserved: `bb566a189aebf1d58b5c4ded2aadb622374c46ad`.
 
-Exact submitted Part 2 commit: pending final merge to `main`.
+Exact submitted Part 2 commit: `cd32bb65d152c98536d5b95338b5c565607b7f07` (merged into `main`).
 
 ## Implementation
 
@@ -32,4 +32,4 @@ Screenshots: [booking form](docs/screenshots/part2-booking-form.png) and [persis
 - [Selected prompts](prompts/selected-prompts.md)
 - [Current handoff](handoffs/current.md)
 
-Remaining limitation: this local classroom simulation has no authentication, payments, live inventory, or real reservations. Next: merge the reviewed Part 2 feature branch to `main`, push it, and upload this updated `report.md` to the Part 2 submission.
+Remaining limitation: this local classroom simulation has no authentication, payments, live inventory, or real reservations. Next: push the reviewed `main` branch and upload this updated `report.md` to the Part 2 submission.

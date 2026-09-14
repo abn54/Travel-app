@@ -10,4 +10,4 @@ SQLite support was confirmed in the project virtual environment (3.50.4), so no 
 
 ## Limitation and next task
 
-This is a local classroom simulation. Authentication, payments, live inventory, and cancellation policies are outside the assignment data model. Next: submit the updated Part 2 `report.md` after the reviewed feature branch is merged to `main`.
+This is a local classroom simulation. Authentication, payments, live inventory, and cancellation policies are outside the assignment data model. The Part 2 feature is merged to `main`; next, push it and upload the updated `report.md`.
