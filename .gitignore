@@ -5,3 +5,6 @@ backend/travel.db
 frontend/node_modules/
 frontend/dist/
 *.pyc
+.env
+.env.*
+!.env.example

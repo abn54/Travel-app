@@ -1,8 +1,8 @@
-# Expedia startup prompts
+# Expedia Lite startup prompts
 
 ## 1. Project boundary
 
-Work only in this Expedia project. Keep Vue code in `frontend/` and FastAPI code in `backend/`. Keep the frontend dependent on FastAPI rather than reading CSV or SQLite files directly. Update README, design note, handoff, and report evidence when behavior changes.
+Work only in this Expedia Lite project. Keep Vue code in `frontend/` and FastAPI code in `backend/`. Keep the frontend dependent on FastAPI rather than reading CSV or SQLite files directly. Update README, design note, handoff, and report evidence when behavior changes.
 
 ## 2. Python and backend preparation
 
@@ -19,3 +19,5 @@ Inspect the supplied `hotels.csv`, `trips.csv`, `users.csv`, and `bookings.csv` 
 ## 5. Verification loop
 
 Use one small change at a time, then run the relevant check and correct confirmed failures before continuing. The Part 2 smoke test is: search `Valley Trail Inn`; expect stay `T008`. Create a booking for Demo Traveler 6 through the frontend, refresh and verify it in history, cancel it while retaining its row, create and delete a second test booking, then restart the frontend and backend. The cancelled booking must remain, the deleted booking must remain absent, and starter data must not duplicate. Do not change unrelated files or add dependencies without first checking whether they are needed.
+
+For Assignment 2 Part 1, inspect the Geoapify and Leaflet documentation and the early mockup first. Check whether Leaflet is installed before changing dependencies; obtain approval before installing it. Mock a valid provider location, an invalid ZIP, an unresolved ZIP, a successful empty response, and a provider failure. Then use one live U.S. ZIP, verify the returned center and map/list result data, and confirm that selecting either a result card or a marker selects the corresponding item in the other representation. Do not add shortlist persistence until Part 2 is requested.

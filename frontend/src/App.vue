@@ -1,5 +1,6 @@
 <script setup>
 import { onMounted, ref } from 'vue'
+import HotelMap from './HotelMap.vue'
 
 const API = 'http://127.0.0.1:8000/api'
 const hotelName = ref('')
@@ -12,6 +13,18 @@ const historyUserId = ref('')
 const searched = ref(false)
 const loading = ref(false)
 const loadingHistory = ref(false)
+const zipCode = ref('16802')
+const zipLoading = ref(false)
+const zipLocation = ref(null)
+const zipError = ref('')
+const nearbyZipCode = ref('')
+const nearbyLoading = ref(false)
+const nearbyHotels = ref([])
+const nearbyCenter = ref(null)
+const nearbyError = ref('')
+const nearbyNoResults = ref(false)
+const nearbySearched = ref(false)
+const selectedNearbyPlaceId = ref('')
 const error = ref('')
 const message = ref('')
 
@@ -21,6 +34,15 @@ function formatDate(value) {
 
 function formatMoney(value) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value)
+}
+
+function formatDistance(value) {
+  return typeof value === 'number' ? `${Math.round(value).toLocaleString()} m from the ZIP center` : 'Distance not provided'
+}
+
+function centerLabel(center) {
+  if (!center) return ''
+  return [center.postcode, center.locality].filter(Boolean).join(' · ')
 }
 
 async function request(path, options = {}) {
@@ -61,6 +83,61 @@ async function search() {
   } finally {
     loading.value = false
   }
+}
+
+async function requestZipLocation(path) {
+  if (zipLoading.value) return
+  zipLocation.value = null
+  zipError.value = ''
+  zipLoading.value = true
+  try {
+    zipLocation.value = await request(path)
+  } catch (err) {
+    zipError.value = err.message
+  } finally {
+    zipLoading.value = false
+  }
+}
+
+function lookupZip() {
+  return requestZipLocation(`/zip-location?postcode=${encodeURIComponent(zipCode.value.trim())}`)
+}
+
+function lookupDemoZip() {
+  zipCode.value = '16802'
+  return requestZipLocation('/demo/zip-location')
+}
+
+async function searchNearbyHotels() {
+  const postcode = nearbyZipCode.value.trim()
+  nearbySearched.value = true
+  nearbyError.value = ''
+  nearbyNoResults.value = false
+  nearbyHotels.value = []
+  nearbyCenter.value = null
+  selectedNearbyPlaceId.value = ''
+
+  if (!/^\d{5}$/.test(postcode)) {
+    nearbyError.value = 'Enter a five-digit U.S. ZIP code.'
+    return
+  }
+
+  nearbyLoading.value = true
+  try {
+    const result = await request(`/hotel-discovery?postcode=${encodeURIComponent(postcode)}`)
+    nearbyCenter.value = result.search_center
+    nearbyHotels.value = result.hotels
+    nearbyNoResults.value = result.status === 'no_results'
+    selectedNearbyPlaceId.value = result.hotels[0]?.place_id || ''
+  } catch (err) {
+    nearbyError.value = err.message
+  } finally {
+    nearbyLoading.value = false
+  }
+}
+
+function selectNearbyHotel(placeId) {
+  selectedNearbyPlaceId.value = placeId
 }
 
 function chooseStay(stay) {
@@ -126,59 +203,154 @@ onMounted(async () => {
 </script>
 
 <template>
-  <main class="page">
-    <h1>Expedia Hotel Search and Booking</h1>
-    <p>Search available stays, make a simulated booking, and review booking history.</p>
+  <main class="app-shell">
+    <header class="site-header">
+      <div class="brand" aria-label="Expedia Lite travel search">
+        <span class="brand-mark" aria-hidden="true">✦</span>
+        <span>Expedia Lite</span>
+      </div>
+      <nav class="site-nav" aria-label="Travel categories">
+        <span>Stays</span>
+        <span>Trips</span>
+        <span>Support</span>
+      </nav>
+      <span class="member-note">Member prices available</span>
+    </header>
 
-    <form class="search-form" @submit.prevent="search">
-      <label for="hotel-name">Hotel name or city</label>
-      <input id="hotel-name" v-model="hotelName" placeholder="Try Valley Trail Inn or Boston" required />
-      <button :disabled="loading">{{ loading ? 'Searching…' : 'Search' }}</button>
-    </form>
+    <section class="hero" aria-labelledby="page-title">
+      <div class="hero-copy">
+        <p class="eyebrow">Plan your next escape</p>
+        <h1 id="page-title">Find a stay you’ll love.</h1>
+        <p>Search available stays, make a simulated booking, and review booking history.</p>
+        <ol class="booking-steps" aria-label="Booking workflow">
+          <li><span>1</span> Search a stay</li>
+          <li><span>2</span> Choose a traveler</li>
+          <li><span>3</span> Manage the booking</li>
+        </ol>
+      </div>
 
-    <section aria-live="polite">
+      <form class="search-form search-card" @submit.prevent="search">
+        <div class="search-field">
+          <label for="hotel-name">Where are you going?</label>
+          <input id="hotel-name" v-model="hotelName" placeholder="Try Valley Trail Inn or Boston" required />
+        </div>
+        <button class="primary-button" :disabled="loading">{{ loading ? 'Searching…' : 'Search stays' }}</button>
+      </form>
+    </section>
+
+    <section class="live-discovery content-card" aria-labelledby="nearby-hotels-heading">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow tool-eyebrow">Live hotel discovery</p>
+          <h2 id="nearby-hotels-heading">Explore nearby hotels on a map</h2>
+          <p>Search a verified U.S. ZIP code. Results are provider locations within 5 km of the returned ZIP center.</p>
+        </div>
+      </div>
+      <form class="nearby-form" @submit.prevent="searchNearbyHotels">
+        <div class="nearby-input">
+          <label for="nearby-zip-code">U.S. ZIP code</label>
+          <input id="nearby-zip-code" v-model="nearbyZipCode" :disabled="nearbyLoading" inputmode="numeric" maxlength="5" placeholder="Try 16802" aria-describedby="nearby-help" />
+          <span id="nearby-help">Five digits, including leading zeros.</span>
+        </div>
+        <button class="primary-button" :disabled="nearbyLoading" type="submit">{{ nearbyLoading ? 'Searching…' : 'Search nearby hotels' }}</button>
+      </form>
+      <p v-if="nearbyLoading" class="inline-feedback" aria-live="polite">Resolving the ZIP code and finding nearby hotels…</p>
+      <p v-if="nearbyError" class="message error" role="alert">{{ nearbyError }}</p>
+      <p v-if="nearbyNoResults" class="message" role="status">No nearby hotel locations were returned within 5 km of {{ centerLabel(nearbyCenter) }}. This search completed successfully.</p>
+
+      <div v-if="nearbyHotels.length" class="nearby-results" aria-live="polite">
+        <div class="nearby-results-heading">
+          <h3>{{ nearbyHotels.length }} nearby hotel location{{ nearbyHotels.length === 1 ? '' : 's' }}</h3>
+          <p>Search center: {{ centerLabel(nearbyCenter) }}. Provider coverage and fields can vary.</p>
+        </div>
+        <div class="nearby-layout">
+          <div class="hotel-result-list" aria-label="Nearby hotel results">
+            <button v-for="(hotel, index) in nearbyHotels" :key="hotel.place_id" :class="['hotel-result-card', { selected: hotel.place_id === selectedNearbyPlaceId }]" type="button" :aria-pressed="hotel.place_id === selectedNearbyPlaceId" @click="selectNearbyHotel(hotel.place_id)">
+              <span class="result-number">{{ index + 1 }}</span>
+              <span class="hotel-result-copy">
+                <strong>{{ hotel.name || 'Name not provided' }}</strong>
+                <span>{{ hotel.address || 'Address not provided' }}</span>
+                <small>{{ formatDistance(hotel.distance_meters) }}</small>
+              </span>
+            </button>
+          </div>
+          <HotelMap :search-center="nearbyCenter" :hotels="nearbyHotels" :selected-place-id="selectedNearbyPlaceId" @select="selectNearbyHotel" />
+        </div>
+      </div>
+    </section>
+
+    <section class="zip-panel travel-tool" aria-labelledby="zip-demo-heading">
+      <div>
+        <p class="eyebrow tool-eyebrow">Travel tool</p>
+        <h2 id="zip-demo-heading">ZIP lookup demonstration</h2>
+        <p>Look up a U.S. ZIP through the secure backend and view the returned location data.</p>
+      </div>
+      <div class="zip-action">
+        <button class="secondary-button" type="button" :disabled="zipLoading" @click="lookupDemoZip">
+          Look up ZIP 16802
+        </button>
+      </div>
+      <form class="zip-form" @submit.prevent="lookupZip">
+        <div class="zip-input">
+          <label for="zip-code">Enter a ZIP code</label>
+          <input id="zip-code" v-model="zipCode" :disabled="zipLoading" inputmode="numeric" maxlength="5" pattern="[0-9]{5}" placeholder="16802" required />
+        </div>
+        <button class="primary-button" :disabled="zipLoading" type="submit">Look up entered ZIP</button>
+      </form>
+      <p v-if="zipLoading" class="inline-feedback" aria-live="polite">Looking up ZIP {{ zipCode || '…' }}…</p>
+      <p v-if="zipError" class="message error" role="alert">{{ zipError }}</p>
+      <div v-if="zipLocation" class="zip-table-wrap" aria-live="polite">
+        <table class="zip-result-table">
+          <thead><tr><th>Postcode</th><th>Country code</th><th>Locality</th><th>Latitude</th><th>Longitude</th></tr></thead>
+          <tbody><tr><td>{{ zipLocation.postcode }}</td><td>{{ zipLocation.country_code }}</td><td>{{ zipLocation.locality || '—' }}</td><td>{{ zipLocation.latitude }}</td><td>{{ zipLocation.longitude }}</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="feedback-area" aria-live="polite">
       <p v-if="error" class="message error">{{ error }}</p>
       <p v-if="message" class="message success">{{ message }}</p>
       <p v-if="searched && !loading && !results.length && !error" class="message">No hotel stays match “{{ hotelName }}”. Try another hotel name or city.</p>
     </section>
 
-    <section v-if="results.length" class="result-section">
+    <section v-if="results.length" class="result-section content-card">
       <h2>Matching hotel stays</h2>
       <div class="table-wrap">
         <table>
           <thead><tr><th>Trip ID</th><th>Hotel</th><th>City</th><th>Stay</th><th>Check-in</th><th>Check-out</th><th>Nights</th><th>Nightly rate</th><th>Estimated stay price</th><th>Action</th></tr></thead>
-          <tbody><tr v-for="stay in results" :key="stay.trip_id"><td>{{ stay.trip_id }}</td><td>{{ stay.hotel_name }}</td><td>{{ stay.city }}, {{ stay.state }}</td><td>{{ stay.trip_name }}</td><td>{{ formatDate(stay.check_in) }}</td><td>{{ formatDate(stay.check_out) }}</td><td>{{ stay.nights }}</td><td>{{ formatMoney(stay.nightly_rate) }}</td><td>{{ formatMoney(stay.stay_price) }}</td><td><button class="small-button" type="button" @click="chooseStay(stay)">Book</button></td></tr></tbody>
+          <tbody><tr v-for="stay in results" :key="stay.trip_id"><td>{{ stay.trip_id }}</td><td>{{ stay.hotel_name }}</td><td>{{ stay.city }}, {{ stay.state }}</td><td>{{ stay.trip_name }}</td><td>{{ formatDate(stay.check_in) }}</td><td>{{ formatDate(stay.check_out) }}</td><td>{{ stay.nights }}</td><td>{{ formatMoney(stay.nightly_rate) }}</td><td>{{ formatMoney(stay.stay_price) }}</td><td><button class="small-button primary-button" type="button" :aria-label="`Book ${stay.trip_name} at ${stay.hotel_name}`" @click="chooseStay(stay)">Book</button></td></tr></tbody>
         </table>
       </div>
     </section>
 
-    <section v-if="selectedStay" class="panel">
-      <h2>Book selected stay</h2>
-      <p><strong>{{ selectedStay.trip_name }}</strong> at {{ selectedStay.hotel_name }} ({{ selectedStay.trip_id }}).</p>
+    <section v-if="selectedStay" class="booking-card">
+      <h2>Choose traveler and book</h2>
+      <p class="booking-summary"><strong>{{ selectedStay.trip_name }}</strong> at {{ selectedStay.hotel_name }} <span>{{ selectedStay.trip_id }}</span></p>
       <form class="booking-form" @submit.prevent="createBooking">
         <label for="traveler">Traveler</label>
         <select id="traveler" v-model="selectedUserId" required>
           <option v-for="user in users" :key="user.user_id" :value="user.user_id">{{ user.display_name }}</option>
         </select>
-        <button type="submit">Create booking</button>
+        <button class="primary-button" type="submit">Create booking</button>
       </form>
     </section>
 
-    <section class="history-section">
+    <section class="history-section content-card">
       <h2>Booking history</h2>
+      <p class="section-description">Review a booking, cancel it while keeping the record, or delete a test booking.</p>
       <form class="history-form" @submit.prevent="loadBookings">
         <label for="history-traveler">Traveler</label>
         <select id="history-traveler" v-model="historyUserId">
           <option value="">All travelers</option>
           <option v-for="user in users" :key="user.user_id" :value="user.user_id">{{ user.display_name }}</option>
         </select>
-        <button :disabled="loadingHistory">{{ loadingHistory ? 'Loading…' : 'Show history' }}</button>
+        <button class="secondary-button" :disabled="loadingHistory">{{ loadingHistory ? 'Loading…' : 'Show history' }}</button>
       </form>
       <p v-if="!loadingHistory && !bookings.length" class="message">No bookings match this history selection.</p>
       <div v-if="bookings.length" class="table-wrap">
         <table>
           <thead><tr><th>Booking ID</th><th>Traveler</th><th>Hotel stay</th><th>Booked on</th><th>Status</th><th>Actions</th></tr></thead>
-          <tbody><tr v-for="booking in bookings" :key="booking.booking_id"><td>{{ booking.booking_id }}</td><td>{{ booking.display_name }}</td><td>{{ booking.trip_name }} at {{ booking.hotel_name }}</td><td>{{ formatDate(booking.booked_on) }}</td><td>{{ booking.status }}</td><td class="actions"><button v-if="booking.status === 'confirmed'" class="small-button" type="button" @click="cancelBooking(booking)">Cancel</button><button class="small-button delete-button" type="button" @click="deleteBooking(booking)">Delete</button></td></tr></tbody>
+          <tbody><tr v-for="booking in bookings" :key="booking.booking_id"><td>{{ booking.booking_id }}</td><td>{{ booking.display_name }}</td><td>{{ booking.trip_name }} at {{ booking.hotel_name }}</td><td>{{ formatDate(booking.booked_on) }}</td><td><span :class="['status-pill', booking.status]">{{ booking.status }}</span></td><td class="actions"><button v-if="booking.status === 'confirmed'" class="small-button cancel-button" type="button" @click="cancelBooking(booking)">Cancel</button><button class="small-button delete-button" type="button" @click="deleteBooking(booking)">Delete</button></td></tr></tbody>
         </table>
       </div>
     </section>
