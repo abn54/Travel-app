@@ -4,7 +4,7 @@
 
 Repository URL: https://github.com/abn54/Travel-app
 
-Assessed commit: add the exact reviewed Part 1 commit after committing this work.
+Assessed Part 1 commit: [`b3ffc44071cc0cfe5548c8c8d2b41b83c82fd989`](https://github.com/abn54/Travel-app/commit/b3ffc44071cc0cfe5548c8c8d2b41b83c82fd989)
 
 To run locally, install `backend/requirements.txt`, run `uvicorn app:app --reload --port 8000` from `backend/`, then run `npm install` and `npm run dev` from `frontend/`. Set `GEOAPIFY_API_KEY` only in the project-root `.env`; restart the backend after editing it. Leaflet is installed through the frontend dependencies and uses attributed OpenStreetMap tiles without receiving the Geoapify key.
 
@@ -52,4 +52,4 @@ Live coverage changes over time, so the recorded observation is not used as a fi
 - [Selected prompts](prompts/selected-prompts.md)
 - [Current handoff](handoffs/current.md)
 
-Remaining limitation: live provider coverage and fields vary, and Part 1 intentionally has no persistent shortlist. Next: record the linked browser demo, commit the reviewed Part 1 work, replace the assessed-commit placeholder, and upload this `report.md`.
+Remaining limitation: live provider coverage and fields vary, and Part 1 intentionally has no persistent shortlist. Next: record the linked browser demo and upload this `report.md`.
