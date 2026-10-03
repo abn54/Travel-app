@@ -117,6 +117,32 @@ class HotelDiscoveryControllerTests(unittest.TestCase):
 
     @patch("hotel_discovery_controller.lookup_zip_location", return_value=RESOLVED_LOCATION)
     @patch("hotel_discovery_controller.get_geoapify_api_key", return_value="test-key")
+    @patch("hotel_discovery_controller.urlopen")
+    def test_one_transient_provider_failure_retries_then_returns_results(
+        self, mock_urlopen, _mock_key, _mock_location
+    ) -> None:
+        mock_urlopen.side_effect = [
+            URLError("temporary"),
+            FakeResponse(
+                {
+                    "features": [
+                        {
+                            "properties": {"place_id": "retry-hotel", "name": "Retry Hotel"},
+                            "geometry": {"coordinates": [-72.638, 40.923]},
+                        }
+                    ]
+                }
+            ),
+        ]
+
+        result = hotel_discovery_controller.discover_hotels("00501")
+
+        self.assertEqual(result["status"], "resolved")
+        self.assertEqual(result["hotels"][0]["name"], "Retry Hotel")
+        self.assertEqual(mock_urlopen.call_count, 2)
+
+    @patch("hotel_discovery_controller.lookup_zip_location", return_value=RESOLVED_LOCATION)
+    @patch("hotel_discovery_controller.get_geoapify_api_key", return_value="test-key")
     @patch("hotel_discovery_controller.urlopen", side_effect=URLError("unavailable"))
     def test_provider_failure_is_not_an_empty_result(
         self, _mock_urlopen, _mock_key, _mock_location

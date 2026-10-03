@@ -15,6 +15,7 @@ PLACES_URL = "https://api.geoapify.com/v2/places"
 REQUEST_TIMEOUT_SECONDS = 5
 SEARCH_RADIUS_METERS = 5_000
 MAX_HOTEL_RESULTS = 20
+MAX_PROVIDER_ATTEMPTS = 2
 
 
 def _number(value: Any, minimum: float, maximum: float) -> float | None:
@@ -78,6 +79,19 @@ def _hotel_from_feature(feature: Any) -> dict | None:
     return hotel
 
 
+def _fetch_places(request: Request) -> dict | None:
+    """Retry one transient provider failure without treating it as no results."""
+    for _ in range(MAX_PROVIDER_ATTEMPTS):
+        try:
+            with urlopen(request, timeout=REQUEST_TIMEOUT_SECONDS) as response:
+                payload = json.loads(response.read().decode("utf-8"))
+            if isinstance(payload, dict) and isinstance(payload.get("features"), list):
+                return payload
+        except (OSError, URLError, UnicodeDecodeError, json.JSONDecodeError):
+            continue
+    return None
+
+
 def discover_hotels(postcode: str) -> dict:
     """Resolve a ZIP, then find provider-backed hotels inside a 5 km circle."""
     requested_postcode = postcode.strip()
@@ -104,15 +118,11 @@ def discover_hotels(postcode: str) -> dict:
         }
     )
     request = Request(f"{PLACES_URL}?{query}", headers={"Accept": "application/json"})
-    try:
-        with urlopen(request, timeout=REQUEST_TIMEOUT_SECONDS) as response:
-            payload = json.loads(response.read().decode("utf-8"))
-    except (OSError, URLError, UnicodeDecodeError, json.JSONDecodeError):
+    payload = _fetch_places(request)
+    if payload is None:
         return {"status": "provider_error", "postcode": requested_postcode}
 
-    features = payload.get("features") if isinstance(payload, dict) else None
-    if not isinstance(features, list):
-        return {"status": "provider_error", "postcode": requested_postcode}
+    features = payload["features"]
 
     hotels = [hotel for feature in features if (hotel := _hotel_from_feature(feature))]
     result = {
