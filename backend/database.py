@@ -77,6 +77,31 @@ def create_schema(connection: sqlite3.Connection) -> None:
         """
     )
     connection.execute(
+        """
+        CREATE TABLE IF NOT EXISTS local_hotels (
+            place_id TEXT PRIMARY KEY,
+            name TEXT,
+            address TEXT,
+            locality TEXT,
+            latitude REAL NOT NULL,
+            longitude REAL NOT NULL,
+            search_postcode TEXT NOT NULL,
+            saved_at TEXT NOT NULL
+        )
+        """
+    )
+    connection.execute(
+        """
+        CREATE TABLE IF NOT EXISTS demo_hotel_nights (
+            place_id TEXT NOT NULL REFERENCES local_hotels(place_id) ON DELETE CASCADE,
+            stay_date TEXT NOT NULL,
+            nightly_rate_usd REAL NOT NULL CHECK(nightly_rate_usd >= 0),
+            available_rooms INTEGER NOT NULL CHECK(available_rooms >= 0),
+            PRIMARY KEY (place_id, stay_date)
+        )
+        """
+    )
+    connection.execute(
         "CREATE INDEX IF NOT EXISTS idx_trips_hotel_id ON trips(hotel_id)"
     )
     connection.execute(
@@ -84,6 +109,9 @@ def create_schema(connection: sqlite3.Connection) -> None:
     )
     connection.execute(
         "CREATE INDEX IF NOT EXISTS idx_bookings_trip_id ON bookings(trip_id)"
+    )
+    connection.execute(
+        "CREATE INDEX IF NOT EXISTS idx_demo_hotel_nights_date ON demo_hotel_nights(stay_date)"
     )
 
 

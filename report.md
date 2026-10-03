@@ -1,55 +1,60 @@
-# Expedia Lite — Assignment 2 Part 1
+# Expedia Lite — Assignment 2 Part 2
 
 ## Project access
 
 Repository URL: https://github.com/abn54/Travel-app
 
-Assessed Part 1 commit: [`b3ffc44071cc0cfe5548c8c8d2b41b83c82fd989`](https://github.com/abn54/Travel-app/commit/b3ffc44071cc0cfe5548c8c8d2b41b83c82fd989)
+Assessed Part 2 commit: add the exact reviewed commit after committing this work.
 
-To run locally, install `backend/requirements.txt`, run `uvicorn app:app --reload --port 8000` from `backend/`, then run `npm install` and `npm run dev` from `frontend/`. Set `GEOAPIFY_API_KEY` only in the project-root `.env`; restart the backend after editing it. Leaflet is installed through the frontend dependencies and uses attributed OpenStreetMap tiles without receiving the Geoapify key.
+To run locally, install `backend/requirements.txt`, run `uvicorn app:app --reload --port 8000` from `backend/`, then run `npm install` and `npm run dev` from `frontend/`. The project-root `.env` contains backend-only `GEOAPIFY_API_KEY` and `OPENROUTER_API_KEY` values. Restart FastAPI after editing `.env`. Neither key is committed or sent to Vue.
 
 ## Research notes
 
-[Research notes](docs/assignment2-part1-research.md) record the Geoapify, Leaflet, and hotel-map sources consulted, useful interaction patterns, limitations, and the resulting decisions. The application uses the returned U.S. ZIP location as the search center, requests `accommodation.hotel` locations only within a 5 km circle, and does not invent price, rating, availability, or booking data.
+[Part 2 research notes](docs/assignment2-part2-research.md) document the OpenRouter free-model availability strategy, SQLite read-only query design, relevant sources, risks, and resulting decisions. The application first tries the selected free Nemotron model and uses OpenRouter's free router only if the selected free endpoint is unavailable.
 
 ## Early mockup
 
-![Early Part 1 mockup](docs/mockups/assignment2-part1-early-mockup.svg)
+![Early Part 2 chatbot mockup](docs/mockups/assignment2-part2-chatbot-mockup.svg)
 
-The mockup was prepared before implementation. The final interface retains the ZIP search, distinct state feedback, synchronized list/map selection, 5 km center label, and map attribution. Styling and responsive layout were refined during implementation.
+The early sketch planned visible local storage, simulated-data labels, and an inspectable chatbot response with the question, checked SQL, retrieved records, and answer. The implemented interface retains those elements, plus loading, no-match, and safe failure feedback.
 
-## Screen-recorded demo
+## Screen-recorded demo video
 
-Record and link a short browser demonstration before submission. Show ZIP `16802`, the returned nearby-hotel list and map, a list selection followed by a marker selection, and one clear error state. Do not show `.env` or the API key.
+Add an accessible recording URL before submission. The video should show: ZIP `16802` provider results; **Add to Local**; the saved local hotel and its labeled simulated dates/rates/rooms; the successful October 10 assistant question; the displayed SQL, retrieved record, and grounded answer; then the Miami no-match state. Do not show `.env` or either key.
 
-Current browser evidence: [live hotel map screenshot](docs/screenshots/assignment2-part1-live-map.png).
+## Implementation
+
+Part 1's ZIP search, provider list, and Leaflet map remain unchanged. Part 2 adds `local_hotels` and `demo_hotel_nights` SQLite tables. A saved provider location uses its provider place ID as the local primary key, preventing duplicates. The backend creates seven dated rows of clearly labeled simulated course nightly rates and room availability for each newly saved hotel; they are not claims of live provider inventory.
+
+The Vue assistant submits a natural-language question to FastAPI. The backend sends the question, safe local schema, and SQL rules to OpenRouter. It accepts and validates one bounded `SELECT` over only the local hotel/demo-night tables, executes it through a SQLite read-only connection, and sends the original question plus retrieved rows to the LLM for a grounded answer. Vue displays the question, proposed SQL, query parameters, retrieved records, and answer. The assistant cannot book or alter database records.
 
 ## Verification record
 
 | Date and action | Expected result | Observed result |
 | --- | --- | --- |
-| September 26, 2026 — direct `GET /api/hotel-discovery?postcode=16802` | Resolve the requested U.S. ZIP before Places search, then return only locations within 5 km. | The request resolved `16802` to State College and returned 20 provider hotel locations with provider place IDs, names/addresses, coordinates, and distances. |
-| September 26, 2026 — search `16802` in Vue | Show a result list and an attributed map centered on the returned ZIP, without prices or booking claims. | Vue displayed 20 nearby hotel locations and the map center label `16802 · State College`. |
-| September 26, 2026 — click a result card, then a map marker | The matching representation becomes selected in both directions. | Browser verification confirmed list-to-marker and marker-to-list synchronization; the selected location was Nittany Lion Inn. |
-| Mocked invalid, unresolved, no-result, and provider-failure paths | Input and request states are distinct; a failure is not presented as an empty result. | 20 backend checks passed. Invalid input maps to a clear 422 response, unresolved ZIP maps to 404, provider failure maps to 502, and an empty provider feature list remains a successful `no_results` response. |
-| September 29, 2026 — restore and test the local services | The ZIP tool and live nearby-hotel search work when both local services are running. | The backend health check safely reported that the key is configured. Direct ZIP `16802` returned State College coordinates, the browser ZIP table displayed the same fields, and the nearby-hotel search displayed provider results and an attributed map. |
-| September 29, 2026 — live nearby search, list click, then map-marker click | ZIP `16802` returns provider hotel locations around the resolved center; list and marker selection stay synchronized. | The browser returned 20 nearby provider hotel locations around `16802 · State College`. Selecting Nittany Lion Inn from the list changed its map marker, and selecting a different map marker changed the matching list card. |
+| October 3, 2026 — save first `16802` provider result, then save it again | One location is saved with seven dated simulated course records; duplicate save creates no second row. | Scholar Hotel State College was saved from the live State College provider result. The first save returned `created: true`, gave October 10–16 rates/rooms, and the duplicate-protection controller test passed. |
+| October 3, 2026 — successful browser question: “Which saved hotel has the lowest simulated nightly rate on 2026-10-10?” | The UI shows the question, an LLM-proposed bounded `SELECT`, matching local record, and a grounded answer. | The checked SQL joined `local_hotels` and `demo_hotel_nights`, used the `2026-10-10` parameter and `LIMIT 1`, then returned Scholar Hotel State College at $152 with 3 simulated rooms. The browser displayed the SQL, one row, and the grounded answer. |
+| October 3, 2026 — browser question for Miami on 2026-10-10 | Successful checked query with no records is distinct from an error. | The proposed bounded query returned zero rows and the UI said no saved local Miami records matched, with no provider or database error. |
+| Mocked valid, no-match, provider-failure, and write-query paths | The full RAG flow is repeatable; a write proposal cannot change SQLite. | 31 automated checks passed. The mocked success has a recorded question → SQL → row → answer workflow in [the fixed JSON fixture](docs/fixtures/assignment2-part2-chat-success.json). A `DELETE` proposal was rejected before database execution, and a model-provider failure maps to a safe 502 response. |
+| October 3, 2026 — production build and safe configuration check | The frontend builds; health reports configuration status without exposing values. | Vite built successfully. `/api/health` reported the Geoapify and OpenRouter keys as configured without returning either key. |
 
-Live coverage changes over time, so the recorded observation is not used as a fixed expected result count.
+Free-model availability can vary. The browser distinguishes a provider failure from a local no-match result, and the fixed fixture makes the core workflow repeatable without a live model request.
 
 ## AI disclosure and evidence log
 
-- Codex, based on GPT-5, was used to inspect the project, research official Geoapify and Leaflet documentation, implement the FastAPI controller/route and Vue map/list view, write mocked checks, and run local verification.
-- The selected prompts and a revised browser-testing approach are recorded in [selected prompts](prompts/selected-prompts.md). The first browser automation attempt did not populate the ZIP field; it was revised to dispatch normal input and form-submit events before the successful synchronization check.
-- Geoapify supplied live location data. Leaflet rendered the map with OpenStreetMap attribution. Neither service received or exposed the project’s `.env` value in the report, screenshots, or browser code.
+- Codex, based on GPT-5, was used to inspect the project, research official OpenRouter and SQLite documentation, implement the local SQLite and backend-only RAG layers, create tests and docs, and run local verification.
+- [Selected prompts](prompts/selected-prompts.md) record the assignment requests that led to this work. During verification, the selected free model initially produced visible reasoning instead of the requested SQL JSON; the planner was revised to request JSON mode with reasoning disabled. The backend still validates every proposal before execution.
+- The first live free-model endpoint was intermittently unavailable. The implementation retains a same-provider OpenRouter free-router fallback and presents a safe failure state if both attempts fail.
+- Geoapify provided the saved location only. OpenRouter generated the SQL proposal and grounded wording. The application labels the stored rates and room counts as simulated course data and excludes `.env` values from source, reports, and browser output.
 
 ## Project context and next steps
 
 - [README](README.md)
 - [Project instructions](AGENTS.md)
 - [Design note](docs/design.md)
-- [Research notes](docs/assignment2-part1-research.md)
+- [Part 2 research](docs/assignment2-part2-research.md)
+- [Part 2 fixed fixture](docs/fixtures/assignment2-part2-chat-success.json)
 - [Selected prompts](prompts/selected-prompts.md)
 - [Current handoff](handoffs/current.md)
 
-Remaining limitation: live provider coverage and fields vary, and Part 1 intentionally has no persistent shortlist. Next: record the linked browser demo and upload this `report.md`.
+Remaining limitation: all nightly rates and rooms are intentionally simulated course data, and free model availability varies. Next: record the demonstration, add its accessible URL above, commit the reviewed Part 2 work, replace the assessed-commit placeholder, and upload this `report.md`.

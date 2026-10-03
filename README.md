@@ -23,7 +23,7 @@ Vue remains the View: it collects user actions and renders search, booking, canc
 
 ## Configuration
 
-The backend-only configuration helper at `backend/config.py` loads the project-root `.env` file beside `frontend/` and `backend/`. Edit `GEOAPIFY_API_KEY` there, never in frontend code. The key supports both Geoapify ZIP geocoding and hotel discovery. Restart the FastAPI backend after editing `.env` so it reloads the configuration.
+The backend-only configuration helper at `backend/config.py` loads the project-root `.env` file beside `frontend/` and `backend/`. Edit `GEOAPIFY_API_KEY` and `OPENROUTER_API_KEY` there, never in frontend code. The Geoapify key supports ZIP geocoding and hotel discovery; the OpenRouter key supports only the local-hotel assistant. Restart the FastAPI backend after editing `.env` so it reloads the configuration.
 
 Leaflet is installed in `frontend/` and displays OpenStreetMap tiles with attribution. It does not receive the Geoapify key.
 
@@ -33,6 +33,13 @@ Leaflet is installed in `frontend/` and displays OpenStreetMap tiles with attrib
 - The route distinguishes invalid input, unresolved ZIPs, missing configuration, provider failures, and a successful search with no nearby locations.
 - Vue displays only provider-backed name, address, coordinates, and distance fields. A selected list item and map marker stay synchronized through the provider place ID.
 - Results are location data, not an exhaustive inventory or proof of prices, ratings, availability, or bookings.
+
+## Assignment 2 Part 2 — Local hotel assistant
+
+- `POST /api/local-hotels` saves a returned provider location by its `place_id` and prevents duplicates. `GET /api/local-hotels?query=` performs a local-first SQLite lookup; `DELETE /api/local-hotels/{place_id}` removes a saved hotel and its course demo nights.
+- Every newly saved location receives clearly labeled simulated course data for October 10–16, 2026: a nightly USD rate and available-room count. These fields are not live provider inventory.
+- `POST /api/hotel-chat` completes the required backend-only RAG workflow: the LLM proposes a bounded SQLite `SELECT`, the backend validates and executes it through a read-only connection, then the original question and retrieved rows go to the LLM for a grounded answer.
+- The assistant cannot book, update, delete, or directly access SQLite. It displays the checked SQL, retrieved records, and answer so the evidence is visible in the browser.
 
 ## Public API ZIP activity
 
@@ -63,4 +70,5 @@ Leaflet is installed in `frontend/` and displays OpenStreetMap tiles with attrib
 - [Public API ZIP activity evidence](docs/public-api-evidence.md)
 - [Current handoff](handoffs/current.md)
 - [Selected prompts](prompts/selected-prompts.md)
-- [Current Assignment 2 Part 1 report](report.md)
+- [Assignment 2 Part 1 report](Expedia%20Lite%20%E2%80%94%20Assignment%202%20Part%201.md)
+- [Current Assignment 2 Part 2 report](report.md)

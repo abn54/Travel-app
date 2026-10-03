@@ -25,6 +25,16 @@ const nearbyError = ref('')
 const nearbyNoResults = ref(false)
 const nearbySearched = ref(false)
 const selectedNearbyPlaceId = ref('')
+const localHotels = ref([])
+const localQuery = ref('')
+const localLoading = ref(false)
+const localSavingPlaceId = ref('')
+const localError = ref('')
+const localMessage = ref('')
+const chatQuestion = ref('Which saved hotel has the lowest simulated nightly rate on 2026-10-10?')
+const chatLoading = ref(false)
+const chatError = ref('')
+const chatResult = ref(null)
 const error = ref('')
 const message = ref('')
 
@@ -43,6 +53,11 @@ function formatDistance(value) {
 function centerLabel(center) {
   if (!center) return ''
   return [center.postcode, center.locality].filter(Boolean).join(' · ')
+}
+
+function demoNightLabel(night) {
+  const roomLabel = night.available_rooms === 1 ? 'room' : 'rooms'
+  return `${formatDate(night.stay_date)} · ${formatMoney(night.nightly_rate_usd)} · ${night.available_rooms} simulated ${roomLabel}`
 }
 
 async function request(path, options = {}) {
@@ -140,6 +155,79 @@ function selectNearbyHotel(placeId) {
   selectedNearbyPlaceId.value = placeId
 }
 
+async function loadLocalHotels() {
+  localLoading.value = true
+  localError.value = ''
+  try {
+    const suffix = localQuery.value.trim() ? `?query=${encodeURIComponent(localQuery.value.trim())}` : ''
+    localHotels.value = await request(`/local-hotels${suffix}`)
+  } catch (err) {
+    localError.value = err.message
+  } finally {
+    localLoading.value = false
+  }
+}
+
+async function saveLocalHotel(hotel) {
+  if (localSavingPlaceId.value || !nearbyCenter.value) return
+  localError.value = ''
+  localMessage.value = ''
+  localSavingPlaceId.value = hotel.place_id
+  try {
+    const saved = await request('/local-hotels', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        place_id: hotel.place_id,
+        name: hotel.name,
+        address: hotel.address,
+        latitude: hotel.latitude,
+        longitude: hotel.longitude,
+        search_postcode: nearbyCenter.value.postcode,
+        locality: nearbyCenter.value.locality || null,
+      }),
+    })
+    localMessage.value = saved.created
+      ? `${saved.hotel.name} was added to Local Hotels with labeled simulated course rates and rooms.`
+      : `${saved.hotel.name} is already saved locally; no duplicate was created.`
+    await loadLocalHotels()
+  } catch (err) {
+    localError.value = err.message
+  } finally {
+    localSavingPlaceId.value = ''
+  }
+}
+
+async function removeLocalHotel(hotel) {
+  localError.value = ''
+  localMessage.value = ''
+  try {
+    await request(`/local-hotels/${encodeURIComponent(hotel.place_id)}`, { method: 'DELETE' })
+    localMessage.value = `${hotel.name} was removed from Local Hotels.`
+    await loadLocalHotels()
+  } catch (err) {
+    localError.value = err.message
+  }
+}
+
+async function askHotelAssistant() {
+  if (chatLoading.value) return
+  chatError.value = ''
+  chatResult.value = null
+  chatLoading.value = true
+  try {
+    chatResult.value = await request('/hotel-chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question: chatQuestion.value.trim() }),
+    })
+  } catch (err) {
+    chatError.value = err.message
+  } finally {
+    chatLoading.value = false
+  }
+}
+
 function chooseStay(stay) {
   selectedStay.value = stay
   message.value = ''
@@ -196,6 +284,7 @@ onMounted(async () => {
   try {
     await loadUsers()
     await loadBookings()
+    await loadLocalHotels()
   } catch (err) {
     error.value = err.message
   }
@@ -265,17 +354,88 @@ onMounted(async () => {
         </div>
         <div class="nearby-layout">
           <div class="hotel-result-list" aria-label="Nearby hotel results">
-            <button v-for="(hotel, index) in nearbyHotels" :key="hotel.place_id" :class="['hotel-result-card', { selected: hotel.place_id === selectedNearbyPlaceId }]" type="button" :aria-pressed="hotel.place_id === selectedNearbyPlaceId" @click="selectNearbyHotel(hotel.place_id)">
-              <span class="result-number">{{ index + 1 }}</span>
-              <span class="hotel-result-copy">
-                <strong>{{ hotel.name || 'Name not provided' }}</strong>
-                <span>{{ hotel.address || 'Address not provided' }}</span>
-                <small>{{ formatDistance(hotel.distance_meters) }}</small>
-              </span>
-            </button>
+            <article v-for="(hotel, index) in nearbyHotels" :key="hotel.place_id" class="hotel-result-item">
+              <button :class="['hotel-result-card', { selected: hotel.place_id === selectedNearbyPlaceId }]" type="button" :aria-pressed="hotel.place_id === selectedNearbyPlaceId" @click="selectNearbyHotel(hotel.place_id)">
+                <span class="result-number">{{ index + 1 }}</span>
+                <span class="hotel-result-copy">
+                  <strong>{{ hotel.name || 'Name not provided' }}</strong>
+                  <span>{{ hotel.address || 'Address not provided' }}</span>
+                  <small>{{ formatDistance(hotel.distance_meters) }}</small>
+                </span>
+              </button>
+              <button class="small-button save-local-button" type="button" :disabled="Boolean(localSavingPlaceId)" @click="saveLocalHotel(hotel)">
+                {{ localSavingPlaceId === hotel.place_id ? 'Saving…' : 'Add to Local' }}
+              </button>
+            </article>
           </div>
           <HotelMap :search-center="nearbyCenter" :hotels="nearbyHotels" :selected-place-id="selectedNearbyPlaceId" @select="selectNearbyHotel" />
         </div>
+      </div>
+    </section>
+
+    <section class="local-library content-card" aria-labelledby="local-hotels-heading">
+      <div class="section-heading">
+        <p class="eyebrow tool-eyebrow">Local SQLite storage</p>
+        <h2 id="local-hotels-heading">Local Hotels</h2>
+        <p>Save a nearby provider location once, then use it for local-first lookup and the assistant. Nightly rates and room counts below are simulated course data—not live inventory.</p>
+      </div>
+      <form class="local-search-form" @submit.prevent="loadLocalHotels">
+        <div class="local-query-input">
+          <label for="local-hotel-query">Search saved hotels</label>
+          <input id="local-hotel-query" v-model="localQuery" :disabled="localLoading" placeholder="Name, location, or ZIP" />
+        </div>
+        <button class="secondary-button" :disabled="localLoading" type="submit">{{ localLoading ? 'Searching…' : 'Search Local' }}</button>
+      </form>
+      <p v-if="localError" class="message error" role="alert">{{ localError }}</p>
+      <p v-if="localMessage" class="message success" role="status">{{ localMessage }}</p>
+      <p v-if="!localLoading && !localHotels.length" class="message" role="status">No local hotels match this search. Add a location from the nearby-hotel results to create local course data.</p>
+      <div v-if="localHotels.length" class="local-hotel-grid" aria-live="polite">
+        <article v-for="hotel in localHotels" :key="hotel.place_id" class="local-hotel-card">
+          <div class="local-hotel-heading">
+            <div>
+              <h3>{{ hotel.name }}</h3>
+              <p>{{ hotel.address }}</p>
+              <small>Saved from {{ hotel.search_postcode }}<span v-if="hotel.locality"> · {{ hotel.locality }}</span></small>
+            </div>
+            <button class="small-button delete-button" type="button" @click="removeLocalHotel(hotel)">Remove</button>
+          </div>
+          <p class="simulated-label">Simulated course data: nightly rates and rooms for October 10–16, 2026.</p>
+          <ul class="demo-night-list">
+            <li v-for="night in hotel.demo_nights" :key="night.stay_date">{{ demoNightLabel(night) }}</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <section class="assistant-panel content-card" aria-labelledby="assistant-heading">
+      <div class="section-heading">
+        <p class="eyebrow tool-eyebrow">Grounded local assistant</p>
+        <h2 id="assistant-heading">Ask about saved hotels</h2>
+        <p>The assistant plans a checked read-only SQLite query, retrieves matching local records, then explains only those records. It cannot make a booking or change saved data.</p>
+      </div>
+      <form class="assistant-form" @submit.prevent="askHotelAssistant">
+        <label for="hotel-question">Hotel question</label>
+        <textarea id="hotel-question" v-model="chatQuestion" :disabled="chatLoading" maxlength="600" required></textarea>
+        <button class="primary-button" :disabled="chatLoading" type="submit">{{ chatLoading ? 'Checking local hotels…' : 'Ask local assistant' }}</button>
+      </form>
+      <p v-if="chatLoading" class="inline-feedback" aria-live="polite">The assistant is proposing a safe query, checking local records, and grounding an answer…</p>
+      <p v-if="chatError" class="message error" role="alert">{{ chatError }}</p>
+      <div v-if="chatResult" class="chat-result" aria-live="polite">
+        <p class="chat-question"><strong>Your question:</strong> {{ chatResult.question }}</p>
+        <div class="chat-answer">
+          <h3>Grounded answer</h3>
+          <p>{{ chatResult.answer }}</p>
+          <small>Rates and availability, if shown, are simulated course data.</small>
+        </div>
+        <details open>
+          <summary>1. Proposed checked SQL</summary>
+          <pre>{{ chatResult.proposed_sql }}<span v-if="chatResult.parameters.length">\nParameters: {{ JSON.stringify(chatResult.parameters) }}</span></pre>
+        </details>
+        <details open>
+          <summary>2. Retrieved local records ({{ chatResult.records.length }})</summary>
+          <p v-if="!chatResult.records.length" class="no-records">No local records matched this checked query.</p>
+          <pre v-else>{{ JSON.stringify(chatResult.records, null, 2) }}</pre>
+        </details>
       </div>
     </section>
 

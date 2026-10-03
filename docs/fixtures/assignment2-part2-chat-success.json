@@ -1,0 +1,17 @@
+{
+  "fixture": "Fixed, key-free mocked success for repeatable Assignment 2 Part 2 verification",
+  "question": "Which saved hotel has the lowest simulated nightly rate on 2026-10-10, and how many simulated rooms are available?",
+  "proposed_sql": "SELECT h.name, n.stay_date, n.nightly_rate_usd, n.available_rooms FROM local_hotels h JOIN demo_hotel_nights n ON h.place_id = n.place_id WHERE n.stay_date = ? AND n.available_rooms > 0 ORDER BY n.nightly_rate_usd ASC LIMIT 1",
+  "parameters": [
+    "2026-10-10"
+  ],
+  "records": [
+    {
+      "name": "Example Local Hotel",
+      "stay_date": "2026-10-10",
+      "nightly_rate_usd": 152.0,
+      "available_rooms": 3
+    }
+  ],
+  "answer": "Example Local Hotel is the lowest-priced saved option on 2026-10-10 at $152 per night with 3 simulated rooms available. Rates and rooms are simulated course data."
+}

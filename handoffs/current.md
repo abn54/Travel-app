@@ -6,7 +6,9 @@ Part 2 uses `travel.db` for search, traveler lookup, simulated booking, booking 
 
 The public API ZIP activity adds a backend-only Geoapify lookup. The root `.env` remains outside version control; `backend/config.py` loads it through an explicit project-root path, and `/api/health` reports only whether the key is configured. The Vue app retains the fixed **Look up ZIP 16802** demonstration and adds a real five-digit ZIP input with a returned-location table.
 
-Assignment 2 Part 1 adds `GET /api/hotel-discovery`. It resolves the exact requested U.S. ZIP first and searches Geoapify `accommodation.hotel` locations within a 5 km circle around that returned center. Vue presents provider-backed hotel cards and a Leaflet map, synchronized through the provider place ID. No shortlist behavior has been added.
+Assignment 2 Part 1 adds `GET /api/hotel-discovery`. It resolves the exact requested U.S. ZIP first and searches Geoapify `accommodation.hotel` locations within a 5 km circle around that returned center. Vue presents provider-backed hotel cards and a Leaflet map, synchronized through the provider place ID.
+
+Revised Assignment 2 Part 2 adds Local Hotels and a grounded assistant. `backend/local_hotel_controller.py` persists a provider location once by `place_id`, its ZIP/locality context, and seven dated rows of explicitly simulated course nightly rate and room data. `backend/hotel_chat_controller.py` keeps the OpenRouter key and both model calls on the backend. It validates one bounded read-only local `SELECT`, retrieves SQLite records through a read-only URI, and sends those records with the original question to the model for a grounded answer. Vue shows the question, checked SQL, records, and answer; it never receives a provider key.
 
 ## Checked
 
@@ -18,6 +20,8 @@ For Assignment 2 Part 1, 20 mocked backend checks passed, the Vite production bu
 
 On September 29, 2026, the local backend environment was restored from `backend/requirements.txt`. The local health endpoint safely confirmed the configured-key status, direct ZIP `16802` returned State College coordinates, the Vue ZIP table displayed the same response, and the nearby-hotel search displayed provider results and its attributed map.
 
+On October 3, 2026, 31 automated checks passed and the Vite production build passed. A live `16802` discovery returned 20 locations; one returned location was saved locally with simulated October 10–16 nightly data. A live assistant question produced a bounded `SELECT`, one matching SQLite row, and a grounded answer stating $152 and 3 simulated rooms for October 10. Browser verification displayed the question, SQL, records, and answer. A second browser question for Miami returned zero records with a clear no-match answer. Mocked checks also rejected a write query before it could change SQLite.
+
 ## Limitation and next task
 
-This is a local classroom simulation. Authentication, payments, live inventory, and cancellation policies are outside the assignment data model. The current root `report.md` is for Assignment 2 Part 1; the preserved Assignment 1 Part 2 report is `docs/assignment1-part2-report.md`. Next, record the Assignment 2 Part 1 browser demonstration (enter `16802`, show the returned list and map, demonstrate list/map selection synchronization, and show one error state), add its accessible link and assessed commit to `report.md`, then submit it. Do not include `.env` or an API key.
+This is a local classroom simulation. Authentication, payments, live inventory, and cancellation policies are outside the assignment data model. The preserved Assignment 2 Part 1 report is `Expedia Lite — Assignment 2 Part 1.md`; the preserved Assignment 1 Part 2 report is `docs/assignment1-part2-report.md`. Next, record the Assignment 2 Part 2 demonstration: save a live provider location, show Local Hotels, ask the successful October 10 question, show SQL and retrieved data, then show the Miami no-match state. Add the accessible recording link and assessed commit to the new root `report.md`, then submit it. Do not include `.env` or an API key.

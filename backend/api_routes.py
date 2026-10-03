@@ -3,11 +3,23 @@ from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, status
 
-from config import geoapify_key_is_configured
+from config import geoapify_key_is_configured, openrouter_key_is_configured
 from database import DATABASE_PATH
+from hotel_chat_controller import (
+    ChatConfigurationError,
+    ChatProviderError,
+    ChatQueryRejectedError,
+    ask_hotel_assistant,
+)
 from hotel_discovery_controller import discover_hotels
+from local_hotel_controller import (
+    LocalHotelNotFoundError,
+    delete_local_hotel,
+    list_local_hotels,
+    save_local_hotel,
+)
 from location_controller import lookup_zip_location
-from models import BookingCreate, BookingStatusUpdate
+from models import BookingCreate, BookingStatusUpdate, HotelChatRequest, LocalHotelCreate
 from travel_controller import (
     BookingNotFoundError,
     StayNotFoundError,
@@ -32,10 +44,16 @@ def health() -> dict:
         if geoapify_key_is_configured()
         else "key is not configured"
     )
+    chatbot_configuration_status = (
+        "key is configured"
+        if openrouter_key_is_configured()
+        else "key is not configured"
+    )
     return {
         "ok": True,
         "database": DATABASE_PATH.name,
         "geoapify": configuration_status,
+        "openrouter": chatbot_configuration_status,
     }
 
 
@@ -80,6 +98,40 @@ def hotel_discovery(postcode: str = "") -> dict:
             detail="ZIP code could not be resolved to a U.S. location.",
         )
     raise HTTPException(status_code=502, detail="Hotel discovery service is unavailable.")
+
+
+@router.get("/local-hotels")
+def local_hotels(query: str = "") -> list[dict]:
+    """Read locally saved provider hotels, optionally by a local text query."""
+    return list_local_hotels(query)
+
+
+@router.post("/local-hotels", status_code=status.HTTP_201_CREATED)
+def save_local_hotel_route(payload: LocalHotelCreate) -> dict:
+    """Save a provider result once and attach labeled course demo night data."""
+    return save_local_hotel(payload)
+
+
+@router.delete("/local-hotels/{place_id}")
+def delete_local_hotel_route(place_id: str) -> dict:
+    """Remove one locally saved provider hotel and its demo-night records."""
+    try:
+        return delete_local_hotel(place_id)
+    except LocalHotelNotFoundError as error:
+        raise HTTPException(status_code=404, detail="Saved hotel was not found.") from error
+
+
+@router.post("/hotel-chat")
+def hotel_chat(payload: HotelChatRequest) -> dict:
+    """Run the backend-only RAG workflow for saved local hotel data."""
+    try:
+        return ask_hotel_assistant(payload.question)
+    except ChatConfigurationError as error:
+        raise HTTPException(status_code=503, detail="Hotel assistant is not configured.") from error
+    except ChatProviderError as error:
+        raise HTTPException(status_code=502, detail="Hotel assistant is temporarily unavailable.") from error
+    except ChatQueryRejectedError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
 
 
 @router.get("/search")

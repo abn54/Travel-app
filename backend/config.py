@@ -18,3 +18,13 @@ def get_geoapify_api_key() -> str:
 def geoapify_key_is_configured() -> bool:
     """Return configuration status without exposing the API key."""
     return bool(get_geoapify_api_key())
+
+
+def get_openrouter_api_key() -> str:
+    """Read the backend-only key used for the Assignment 2 chatbot."""
+    return os.getenv("OPENROUTER_API_KEY", "").strip()
+
+
+def openrouter_key_is_configured() -> bool:
+    """Return chatbot configuration status without exposing the API key."""
+    return bool(get_openrouter_api_key())
