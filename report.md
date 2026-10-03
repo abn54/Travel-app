@@ -4,7 +4,7 @@
 
 Repository URL: https://github.com/abn54/Travel-app
 
-Assessed Part 2 commit: add the exact reviewed commit after committing this work.
+Assessed Part 2 commit: [`2657504c0db9a6569a8d464e735c6969fc00ce1c`](https://github.com/abn54/Travel-app/commit/2657504c0db9a6569a8d464e735c6969fc00ce1c)
 
 To run locally, install `backend/requirements.txt`, run `uvicorn app:app --reload --port 8000` from `backend/`, then run `npm install` and `npm run dev` from `frontend/`. The project-root `.env` contains backend-only `GEOAPIFY_API_KEY` and `OPENROUTER_API_KEY` values. Restart FastAPI after editing `.env`. Neither key is committed or sent to Vue.
 
@@ -57,4 +57,4 @@ Free-model availability can vary. The browser distinguishes a provider failure f
 - [Selected prompts](prompts/selected-prompts.md)
 - [Current handoff](handoffs/current.md)
 
-Remaining limitation: all nightly rates and rooms are intentionally simulated course data, and free model availability varies. Next: record the demonstration, add its accessible URL above, commit the reviewed Part 2 work, replace the assessed-commit placeholder, and upload this `report.md`.
+Remaining limitation: all nightly rates and rooms are intentionally simulated course data, and free model availability varies. Next: record the demonstration, add its accessible URL above, and upload this `report.md`.
