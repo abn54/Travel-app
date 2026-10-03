@@ -4,7 +4,7 @@
 
 Part 2 uses `travel.db` for search, traveler lookup, simulated booking, booking history, cancellation, and deletion. The original CSV records seed a new database once. The Vue frontend sends every data action through FastAPI and has simple forms and labeled tables for the full workflow. The Assignment 1 backend now separates request models (`backend/models.py`), the relational SQLite model and seed (`backend/database.py`), the SQLite CRUD controller (`backend/travel_controller.py`), thin FastAPI routes (`backend/api_routes.py`), and application setup (`backend/app.py`).
 
-The public API ZIP activity adds a backend-only Geoapify lookup. The root `.env` remains outside version control; `backend/config.py` loads it through an explicit project-root path, and `/api/health` reports only whether the key is configured. The Vue app retains the fixed **Look up ZIP 16802** demonstration and adds a real five-digit ZIP input with a returned-location table.
+The public API ZIP activity adds a backend-only Geoapify lookup. The root `.env` remains outside version control; `backend/config.py` loads it through an explicit project-root path, and `/api/health` reports only whether the key is configured. The fixed `16802` endpoint remains available for the classroom demonstration, while Vue uses one real five-digit ZIP input with a returned-location table.
 
 Assignment 2 Part 1 adds `GET /api/hotel-discovery`. It resolves the exact requested U.S. ZIP first and searches Geoapify `accommodation.hotel` locations within a 5 km circle around that returned center. Vue presents provider-backed hotel cards and a Leaflet map, synchronized through the provider place ID.
 
@@ -20,7 +20,7 @@ For Assignment 2 Part 1, 20 mocked backend checks passed, the Vite production bu
 
 On September 29, 2026, the local backend environment was restored from `backend/requirements.txt`. The local health endpoint safely confirmed the configured-key status, direct ZIP `16802` returned State College coordinates, the Vue ZIP table displayed the same response, and the nearby-hotel search displayed provider results and its attributed map.
 
-On October 3, 2026, 31 automated checks passed and the Vite production build passed. A live `16802` discovery returned 20 locations; one returned location was saved locally with simulated October 10–16 nightly data. A live assistant question produced a bounded `SELECT`, one matching SQLite row, and a grounded answer stating $152 and 3 simulated rooms for October 10. Browser verification displayed the question, SQL, records, and answer. A second browser question for Miami returned zero records with a clear no-match answer. Mocked checks also rejected a write query before it could change SQLite.
+On October 3, 2026, 32 automated checks passed and the Vite production build passed. A live `16802` discovery returned 20 locations; one returned location was saved locally with simulated October 10–16 nightly data. A live assistant question produced a bounded `SELECT`, one matching SQLite row, and a grounded answer stating $152 and 3 simulated rooms for October 10. Browser verification displayed the question, SQL, records, and answer. A second browser question for Miami returned zero records with a clear no-match answer. Mocked checks also rejected a write query before it could change SQLite.
 
 ## Limitation and next task
 

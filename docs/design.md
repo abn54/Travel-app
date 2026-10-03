@@ -18,7 +18,7 @@ SQLite is the Part 2 application data source. The CSV files remain as the initia
 
 `backend/location_controller.py` is a backend-only controller for entered five-digit U.S. ZIP codes. It reads the Geoapify key only through `backend/config.py`, sends it only in the backend's forward-geocoding request, and uses a five-second timeout. A matching U.S. postcode with valid latitude and longitude returns a small `resolved` location object containing `postcode`, `country_code`, `latitude`, `longitude`, and `locality` when available. A valid provider response without an acceptable matching location returns `unresolved`; missing configuration returns `configuration_error`; request, decoding, or malformed-provider failures return `provider_error`. Neither outcome exposes the key, provider URL, or raw exception text.
 
-`GET /api/demo/zip-location` keeps the fixed `16802` classroom demonstration. `GET /api/zip-location?postcode=<zip>` passes an entered ZIP to the same controller. Both routes return a resolved location unchanged, map missing configuration to HTTP 503, map an unresolved ZIP to HTTP 404, and map provider failures to HTTP 502. Vue provides both the fixed demonstration button and a real ZIP input; its location result is displayed in a labeled table.
+`GET /api/demo/zip-location` keeps the fixed `16802` classroom endpoint available. `GET /api/zip-location?postcode=<zip>` passes an entered ZIP to the same controller. Both routes return a resolved location unchanged, map missing configuration to HTTP 503, map an unresolved ZIP to HTTP 404, and map provider failures to HTTP 502. Vue presents one real ZIP input and displays its location result in a labeled table.
 
 ## Assignment 2 Part 1 — Live hotel discovery
 

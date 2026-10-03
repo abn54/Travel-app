@@ -4,7 +4,7 @@
 
 Repository URL: https://github.com/abn54/Travel-app
 
-Assessed Part 2 commit: [`2657504c0db9a6569a8d464e735c6969fc00ce1c`](https://github.com/abn54/Travel-app/commit/2657504c0db9a6569a8d464e735c6969fc00ce1c)
+Assessed Part 2 commit: [`f4ff41815069af22eed329ee0e8383b147b37669`](https://github.com/abn54/Travel-app/commit/f4ff41815069af22eed329ee0e8383b147b37669)
 
 To run locally, install `backend/requirements.txt`, run `uvicorn app:app --reload --port 8000` from `backend/`, then run `npm install` and `npm run dev` from `frontend/`. The project-root `.env` contains backend-only `GEOAPIFY_API_KEY` and `OPENROUTER_API_KEY` values. Restart FastAPI after editing `.env`. Neither key is committed or sent to Vue.
 
@@ -20,7 +20,7 @@ The early sketch planned visible local storage, simulated-data labels, and an in
 
 ## Screen-recorded demo video
 
-Add an accessible recording URL before submission. The video should show: ZIP `16802` provider results; **Add to Local**; the saved local hotel and its labeled simulated dates/rates/rooms; the successful October 10 assistant question; the displayed SQL, retrieved record, and grounded answer; then the Miami no-match state. Do not show `.env` or either key.
+**Recording URL: paste your accessible recording link here before uploading.** The video should show: ZIP `16802` provider results; **Add to Local**; the saved local hotel and its labeled simulated dates/rates/rooms; the successful October 10 assistant question; the displayed SQL, retrieved record, and grounded answer; then the Miami no-match state. Do not show `.env` or either key.
 
 ## Implementation
 
@@ -35,7 +35,8 @@ The Vue assistant submits a natural-language question to FastAPI. The backend se
 | October 3, 2026 — save first `16802` provider result, then save it again | One location is saved with seven dated simulated course records; duplicate save creates no second row. | Scholar Hotel State College was saved from the live State College provider result. The first save returned `created: true`, gave October 10–16 rates/rooms, and the duplicate-protection controller test passed. |
 | October 3, 2026 — successful browser question: “Which saved hotel has the lowest simulated nightly rate on 2026-10-10?” | The UI shows the question, an LLM-proposed bounded `SELECT`, matching local record, and a grounded answer. | The checked SQL joined `local_hotels` and `demo_hotel_nights`, used the `2026-10-10` parameter and `LIMIT 1`, then returned Scholar Hotel State College at $152 with 3 simulated rooms. The browser displayed the SQL, one row, and the grounded answer. |
 | October 3, 2026 — browser question for Miami on 2026-10-10 | Successful checked query with no records is distinct from an error. | The proposed bounded query returned zero rows and the UI said no saved local Miami records matched, with no provider or database error. |
-| Mocked valid, no-match, provider-failure, and write-query paths | The full RAG flow is repeatable; a write proposal cannot change SQLite. | 31 automated checks passed. The mocked success has a recorded question → SQL → row → answer workflow in [the fixed JSON fixture](docs/fixtures/assignment2-part2-chat-success.json). A `DELETE` proposal was rejected before database execution, and a model-provider failure maps to a safe 502 response. |
+| Mocked valid, no-match, provider-failure, and write-query paths | The full RAG flow is repeatable; a write proposal cannot change SQLite. | 32 automated checks passed. The mocked success has a recorded question → SQL → row → answer workflow in [the fixed JSON fixture](docs/fixtures/assignment2-part2-chat-success.json). A `DELETE` proposal was rejected before database execution, and a model-provider failure maps to a safe 502 response. |
+| Automated local-storage checks — duplicate save, removal, and reopened SQLite database | A provider place ID saves once, removal deletes its related demo nights, and saved state persists after browser/backend restarts. | The local-storage controller checks passed: duplicate saves did not create a second row; removal deleted the hotel and its dated demo nights; reopening the SQLite database preserved saved records. |
 | October 3, 2026 — production build and safe configuration check | The frontend builds; health reports configuration status without exposing values. | Vite built successfully. `/api/health` reported the Geoapify and OpenRouter keys as configured without returning either key. |
 
 Free-model availability can vary. The browser distinguishes a provider failure from a local no-match result, and the fixed fixture makes the core workflow repeatable without a live model request.
