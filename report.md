@@ -58,4 +58,4 @@ Free-model availability can vary. The browser distinguishes a provider failure f
 - [Selected prompts](prompts/selected-prompts.md)
 - [Current handoff](handoffs/current.md)
 
-Remaining limitation: all nightly rates and rooms are intentionally simulated course data, and free model availability varies. Next: record the demonstration, add its accessible URL above, and upload this `report.md`.
+Remaining limitation: all nightly rates and rooms are intentionally simulated course data, and free model availability varies. Next: upload this `report.md` to the Assignment 2 Part 2 Canvas submission.
