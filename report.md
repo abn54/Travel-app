@@ -20,7 +20,7 @@ The early sketch planned visible local storage, simulated-data labels, and an in
 
 ## Screen-recorded demo video
 
-**Recording URL: paste your accessible recording link here before uploading.** The video should show: ZIP `16802` provider results; **Add to Local**; the saved local hotel and its labeled simulated dates/rates/rooms; the successful October 10 assistant question; the displayed SQL, retrieved record, and grounded answer; then the Miami no-match state. Do not show `.env` or either key.
+[Watch the Assignment 2 Part 2 demo](https://psu.mediaspace.kaltura.com/media/t/1_5lx8yxiu). The video shows: ZIP `16802` provider results; **Add to Local**; the saved local hotel and its labeled simulated dates/rates/rooms; the successful October 10 assistant question; the displayed SQL, retrieved record, and grounded answer; then the Miami no-match state. It does not show `.env` or either key.
 
 ## Implementation
 
