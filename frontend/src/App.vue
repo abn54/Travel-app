@@ -118,11 +118,6 @@ function lookupZip() {
   return requestZipLocation(`/zip-location?postcode=${encodeURIComponent(zipCode.value.trim())}`)
 }
 
-function lookupDemoZip() {
-  zipCode.value = '16802'
-  return requestZipLocation('/demo/zip-location')
-}
-
 async function searchNearbyHotels() {
   const postcode = nearbyZipCode.value.trim()
   nearbySearched.value = true
@@ -442,20 +437,15 @@ onMounted(async () => {
     <section class="zip-panel travel-tool" aria-labelledby="zip-demo-heading">
       <div>
         <p class="eyebrow tool-eyebrow">Travel tool</p>
-        <h2 id="zip-demo-heading">ZIP lookup demonstration</h2>
-        <p>Look up a U.S. ZIP through the secure backend and view the returned location data.</p>
-      </div>
-      <div class="zip-action">
-        <button class="secondary-button" type="button" :disabled="zipLoading" @click="lookupDemoZip">
-          Look up ZIP 16802
-        </button>
+        <h2 id="zip-demo-heading">U.S. ZIP lookup</h2>
+        <p>Enter any valid five-digit U.S. ZIP code to look up its location through the secure backend. The example starts with 16802.</p>
       </div>
       <form class="zip-form" @submit.prevent="lookupZip">
         <div class="zip-input">
           <label for="zip-code">Enter a ZIP code</label>
           <input id="zip-code" v-model="zipCode" :disabled="zipLoading" inputmode="numeric" maxlength="5" pattern="[0-9]{5}" placeholder="16802" required />
         </div>
-        <button class="primary-button" :disabled="zipLoading" type="submit">Look up entered ZIP</button>
+        <button class="primary-button" :disabled="zipLoading" type="submit">{{ zipLoading ? 'Looking up ZIP…' : 'Look up ZIP' }}</button>
       </form>
       <p v-if="zipLoading" class="inline-feedback" aria-live="polite">Looking up ZIP {{ zipCode || '…' }}…</p>
       <p v-if="zipError" class="message error" role="alert">{{ zipError }}</p>
