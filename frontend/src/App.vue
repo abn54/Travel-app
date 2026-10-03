@@ -322,6 +322,34 @@ onMounted(async () => {
       </form>
     </section>
 
+    <section class="feedback-area" aria-live="polite">
+      <p v-if="error" class="message error">{{ error }}</p>
+      <p v-if="message" class="message success">{{ message }}</p>
+      <p v-if="searched && !loading && !results.length && !error" class="message">No hotel stays match “{{ hotelName }}”. Try another hotel name or city.</p>
+    </section>
+
+    <section v-if="results.length" class="result-section content-card">
+      <h2>Matching hotel stays</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Trip ID</th><th>Hotel</th><th>City</th><th>Stay</th><th>Check-in</th><th>Check-out</th><th>Nights</th><th>Nightly rate</th><th>Estimated stay price</th><th>Action</th></tr></thead>
+          <tbody><tr v-for="stay in results" :key="stay.trip_id"><td>{{ stay.trip_id }}</td><td>{{ stay.hotel_name }}</td><td>{{ stay.city }}, {{ stay.state }}</td><td>{{ stay.trip_name }}</td><td>{{ formatDate(stay.check_in) }}</td><td>{{ formatDate(stay.check_out) }}</td><td>{{ stay.nights }}</td><td>{{ formatMoney(stay.nightly_rate) }}</td><td>{{ formatMoney(stay.stay_price) }}</td><td><button class="small-button primary-button" type="button" :aria-label="`Book ${stay.trip_name} at ${stay.hotel_name}`" @click="chooseStay(stay)">Book</button></td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section v-if="selectedStay" class="booking-card">
+      <h2>Choose traveler and book</h2>
+      <p class="booking-summary"><strong>{{ selectedStay.trip_name }}</strong> at {{ selectedStay.hotel_name }} <span>{{ selectedStay.trip_id }}</span></p>
+      <form class="booking-form" @submit.prevent="createBooking">
+        <label for="traveler">Traveler</label>
+        <select id="traveler" v-model="selectedUserId" required>
+          <option v-for="user in users" :key="user.user_id" :value="user.user_id">{{ user.display_name }}</option>
+        </select>
+        <button class="primary-button" type="submit">Create booking</button>
+      </form>
+    </section>
+
     <section class="live-discovery content-card" aria-labelledby="nearby-hotels-heading">
       <div class="section-heading">
         <div>
@@ -455,34 +483,6 @@ onMounted(async () => {
           <tbody><tr><td>{{ zipLocation.postcode }}</td><td>{{ zipLocation.country_code }}</td><td>{{ zipLocation.locality || '—' }}</td><td>{{ zipLocation.latitude }}</td><td>{{ zipLocation.longitude }}</td></tr></tbody>
         </table>
       </div>
-    </section>
-
-    <section class="feedback-area" aria-live="polite">
-      <p v-if="error" class="message error">{{ error }}</p>
-      <p v-if="message" class="message success">{{ message }}</p>
-      <p v-if="searched && !loading && !results.length && !error" class="message">No hotel stays match “{{ hotelName }}”. Try another hotel name or city.</p>
-    </section>
-
-    <section v-if="results.length" class="result-section content-card">
-      <h2>Matching hotel stays</h2>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Trip ID</th><th>Hotel</th><th>City</th><th>Stay</th><th>Check-in</th><th>Check-out</th><th>Nights</th><th>Nightly rate</th><th>Estimated stay price</th><th>Action</th></tr></thead>
-          <tbody><tr v-for="stay in results" :key="stay.trip_id"><td>{{ stay.trip_id }}</td><td>{{ stay.hotel_name }}</td><td>{{ stay.city }}, {{ stay.state }}</td><td>{{ stay.trip_name }}</td><td>{{ formatDate(stay.check_in) }}</td><td>{{ formatDate(stay.check_out) }}</td><td>{{ stay.nights }}</td><td>{{ formatMoney(stay.nightly_rate) }}</td><td>{{ formatMoney(stay.stay_price) }}</td><td><button class="small-button primary-button" type="button" :aria-label="`Book ${stay.trip_name} at ${stay.hotel_name}`" @click="chooseStay(stay)">Book</button></td></tr></tbody>
-        </table>
-      </div>
-    </section>
-
-    <section v-if="selectedStay" class="booking-card">
-      <h2>Choose traveler and book</h2>
-      <p class="booking-summary"><strong>{{ selectedStay.trip_name }}</strong> at {{ selectedStay.hotel_name }} <span>{{ selectedStay.trip_id }}</span></p>
-      <form class="booking-form" @submit.prevent="createBooking">
-        <label for="traveler">Traveler</label>
-        <select id="traveler" v-model="selectedUserId" required>
-          <option v-for="user in users" :key="user.user_id" :value="user.user_id">{{ user.display_name }}</option>
-        </select>
-        <button class="primary-button" type="submit">Create booking</button>
-      </form>
     </section>
 
     <section class="history-section content-card">
