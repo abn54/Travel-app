@@ -31,6 +31,9 @@ const localLoading = ref(false)
 const localSavingPlaceId = ref('')
 const localError = ref('')
 const localMessage = ref('')
+const nearbyLocalError = ref('')
+const nearbyLocalMessage = ref('')
+const savedLocalPlaceIds = ref(new Set())
 const chatQuestion = ref('Which saved hotel has the lowest simulated nightly rate on 2026-10-10?')
 const chatLoading = ref(false)
 const chatError = ref('')
@@ -156,6 +159,9 @@ async function loadLocalHotels() {
   try {
     const suffix = localQuery.value.trim() ? `?query=${encodeURIComponent(localQuery.value.trim())}` : ''
     localHotels.value = await request(`/local-hotels${suffix}`)
+    if (!localQuery.value.trim()) {
+      savedLocalPlaceIds.value = new Set(localHotels.value.map((hotel) => hotel.place_id))
+    }
   } catch (err) {
     localError.value = err.message
   } finally {
@@ -165,8 +171,8 @@ async function loadLocalHotels() {
 
 async function saveLocalHotel(hotel) {
   if (localSavingPlaceId.value || !nearbyCenter.value) return
-  localError.value = ''
-  localMessage.value = ''
+  nearbyLocalError.value = ''
+  nearbyLocalMessage.value = ''
   localSavingPlaceId.value = hotel.place_id
   try {
     const saved = await request('/local-hotels', {
@@ -182,12 +188,13 @@ async function saveLocalHotel(hotel) {
         locality: nearbyCenter.value.locality || null,
       }),
     })
-    localMessage.value = saved.created
-      ? `${saved.hotel.name} was added to Local Hotels with labeled simulated course rates and rooms.`
+    savedLocalPlaceIds.value = new Set([...savedLocalPlaceIds.value, saved.hotel.place_id])
+    nearbyLocalMessage.value = saved.created
+      ? `${saved.hotel.name} was saved to Local Hotels with labeled simulated course rates and rooms.`
       : `${saved.hotel.name} is already saved locally; no duplicate was created.`
     await loadLocalHotels()
   } catch (err) {
-    localError.value = err.message
+    nearbyLocalError.value = err.message
   } finally {
     localSavingPlaceId.value = ''
   }
@@ -198,6 +205,9 @@ async function removeLocalHotel(hotel) {
   localMessage.value = ''
   try {
     await request(`/local-hotels/${encodeURIComponent(hotel.place_id)}`, { method: 'DELETE' })
+    const remainingPlaceIds = new Set(savedLocalPlaceIds.value)
+    remainingPlaceIds.delete(hotel.place_id)
+    savedLocalPlaceIds.value = remainingPlaceIds
     localMessage.value = `${hotel.name} was removed from Local Hotels.`
     await loadLocalHotels()
   } catch (err) {
@@ -368,6 +378,8 @@ onMounted(async () => {
       </form>
       <p v-if="nearbyLoading" class="inline-feedback" aria-live="polite">Resolving the ZIP code and finding nearby hotels…</p>
       <p v-if="nearbyError" class="message error" role="alert">{{ nearbyError }}</p>
+      <p v-if="nearbyLocalError" class="message error" role="alert">{{ nearbyLocalError }}</p>
+      <p v-if="nearbyLocalMessage" class="message success" role="status">{{ nearbyLocalMessage }}</p>
       <p v-if="nearbyNoResults" class="message" role="status">No nearby hotel locations were returned within 5 km of {{ centerLabel(nearbyCenter) }}. This search completed successfully.</p>
 
       <div v-if="nearbyHotels.length" class="nearby-results" aria-live="polite">
@@ -386,8 +398,8 @@ onMounted(async () => {
                   <small>{{ formatDistance(hotel.distance_meters) }}</small>
                 </span>
               </button>
-              <button class="small-button save-local-button" type="button" :disabled="Boolean(localSavingPlaceId)" @click="saveLocalHotel(hotel)">
-                {{ localSavingPlaceId === hotel.place_id ? 'Saving…' : 'Add to Local' }}
+              <button class="small-button save-local-button" type="button" :disabled="Boolean(localSavingPlaceId) || savedLocalPlaceIds.has(hotel.place_id)" @click="saveLocalHotel(hotel)">
+                {{ localSavingPlaceId === hotel.place_id ? 'Saving…' : savedLocalPlaceIds.has(hotel.place_id) ? 'Saved to Local' : 'Add to Local' }}
               </button>
             </article>
           </div>
