@@ -102,6 +102,65 @@ def create_schema(connection: sqlite3.Connection) -> None:
         """
     )
     connection.execute(
+        """
+        CREATE TABLE IF NOT EXISTS saved_hotels (
+            hotel_id TEXT PRIMARY KEY,
+            name TEXT,
+            address TEXT,
+            locality TEXT,
+            latitude REAL NOT NULL,
+            longitude REAL NOT NULL,
+            saved_at TEXT NOT NULL
+        )
+        """
+    )
+    connection.execute(
+        """
+        CREATE TABLE IF NOT EXISTS saved_hotel_zips (
+            hotel_id TEXT NOT NULL REFERENCES saved_hotels(hotel_id) ON DELETE CASCADE,
+            postcode TEXT NOT NULL,
+            locality TEXT,
+            PRIMARY KEY (hotel_id, postcode)
+        )
+        """
+    )
+    connection.execute(
+        """
+        CREATE TABLE IF NOT EXISTS conversation_messages (
+            message_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            conversation_id TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            role TEXT NOT NULL CHECK(role IN ('system', 'user', 'assistant', 'tool')),
+            stage TEXT NOT NULL,
+            content TEXT NOT NULL,
+            prompt_version TEXT
+        )
+        """
+    )
+    existing_night_columns = {
+        row["name"] for row in connection.execute("PRAGMA table_info(demo_hotel_nights)")
+    }
+    if "hotel_id" not in existing_night_columns:
+        connection.execute("ALTER TABLE demo_hotel_nights ADD COLUMN hotel_id TEXT")
+    connection.execute(
+        "UPDATE demo_hotel_nights SET hotel_id = place_id WHERE hotel_id IS NULL"
+    )
+    connection.execute(
+        """
+        INSERT OR IGNORE INTO saved_hotels (
+            hotel_id, name, address, locality, latitude, longitude, saved_at
+        )
+        SELECT place_id, name, address, locality, latitude, longitude, saved_at
+        FROM local_hotels
+        """
+    )
+    connection.execute(
+        """
+        INSERT OR IGNORE INTO saved_hotel_zips (hotel_id, postcode, locality)
+        SELECT place_id, search_postcode, locality FROM local_hotels
+        """
+    )
+    connection.execute(
         "CREATE INDEX IF NOT EXISTS idx_trips_hotel_id ON trips(hotel_id)"
     )
     connection.execute(
@@ -112,6 +171,12 @@ def create_schema(connection: sqlite3.Connection) -> None:
     )
     connection.execute(
         "CREATE INDEX IF NOT EXISTS idx_demo_hotel_nights_date ON demo_hotel_nights(stay_date)"
+    )
+    connection.execute(
+        "CREATE INDEX IF NOT EXISTS idx_saved_hotel_zips_postcode ON saved_hotel_zips(postcode)"
+    )
+    connection.execute(
+        "CREATE INDEX IF NOT EXISTS idx_conversation_messages_conversation ON conversation_messages(conversation_id, message_id)"
     )
 
 

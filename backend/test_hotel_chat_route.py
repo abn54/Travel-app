@@ -20,12 +20,13 @@ class HotelChatRouteTests(unittest.TestCase):
             "parameters": [],
             "records": [],
             "answer": "No local records are saved.",
+            "conversation_id": "hotel-test-1234",
         }
 
         response = api_routes.hotel_chat(HotelChatRequest(question="Which option is lowest?"))
 
         self.assertEqual(response, mock_assistant.return_value)
-        mock_assistant.assert_called_once_with("Which option is lowest?")
+        mock_assistant.assert_called_once_with("Which option is lowest?", None)
 
     @patch("api_routes.ask_hotel_assistant", side_effect=ChatConfigurationError)
     def test_route_hides_missing_configuration_details(self, _mock_assistant) -> None:
@@ -42,3 +43,12 @@ class HotelChatRouteTests(unittest.TestCase):
 
         self.assertEqual(raised.exception.status_code, 502)
         self.assertEqual(raised.exception.detail, "Hotel assistant is temporarily unavailable.")
+
+    @patch("api_routes.get_conversation_trace")
+    def test_conversation_route_returns_saved_trace(self, mock_trace) -> None:
+        mock_trace.return_value = [{"message_id": 1, "stage": "user_question"}]
+
+        response = api_routes.hotel_conversation("hotel-example-1234")
+
+        self.assertEqual(response["conversation_id"], "hotel-example-1234")
+        self.assertEqual(response["trace"], mock_trace.return_value)

@@ -23,7 +23,7 @@ Vue remains the View: it collects user actions and renders search, booking, canc
 
 ## Configuration
 
-The backend-only configuration helper at `backend/config.py` loads the project-root `.env` file beside `frontend/` and `backend/`. Edit `GEOAPIFY_API_KEY` and `OPENROUTER_API_KEY` there, never in frontend code. The Geoapify key supports ZIP geocoding and hotel discovery; the OpenRouter key supports only the local-hotel assistant. Restart the FastAPI backend after editing `.env` so it reloads the configuration.
+The backend-only configuration helper at `backend/config.py` loads the project-root `.env` file beside `frontend/` and `backend/`. Edit `GEOAPIFY_API_KEY` and `OPEN_AI_API_KEY` there, never in frontend code. Geoapify supports ZIP geocoding and hotel discovery; OpenAI supports the saved-conversation hotel assistant. `OPEN_AI_MODEL` is optional and defaults to `gpt-5-mini`. Restart the FastAPI backend after editing `.env` so it reloads the configuration.
 
 Leaflet is installed in `frontend/` and displays OpenStreetMap tiles with attribution. It does not receive the Geoapify key.
 
@@ -40,6 +40,13 @@ Leaflet is installed in `frontend/` and displays OpenStreetMap tiles with attrib
 - Every newly saved location receives clearly labeled simulated course data for October 10–16, 2026: a nightly USD rate and available-room count. These fields are not live provider inventory.
 - `POST /api/hotel-chat` completes the required backend-only RAG workflow: the LLM proposes a bounded SQLite `SELECT`, the backend validates and executes it through a read-only connection, then the original question and retrieved rows go to the LLM for a grounded answer.
 - The assistant cannot book, update, delete, or directly access SQLite. It displays the checked SQL, retrieved records, and answer so the evidence is visible in the browser.
+
+## RAG context activity — saved conversations
+
+- `prompts/hotel-assistant.md` is the versioned backend prompt. It describes the saved-hotel, saved-ZIP, and simulated-night schema plus the permitted SQL rules.
+- `conversation_messages` preserves a timestamped trace for every user question, proposed SQL, executed SQL, retrieval result, final assistant answer, or safe failure. `GET /api/hotel-conversations/{conversation_id}` retrieves that trace after a refresh or backend restart.
+- `POST /api/hotel-chat` accepts an optional `conversation_id`; a follow-up question includes the relevant saved user/assistant history in the first model request before repeating the checked retrieval workflow.
+- OpenAI is called only from the FastAPI backend. The browser receives a conversation ID, grounded answer, checked SQL, and retrieved records—never an API key.
 
 ## Public API ZIP activity
 

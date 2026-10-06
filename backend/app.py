@@ -8,12 +8,14 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from api_routes import router
 from database import initialize_database
+from hotel_chat_controller import initialize_hotel_assistant_prompt
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     """Prepare the SQLite model before the API accepts requests."""
     initialize_database()
+    initialize_hotel_assistant_prompt()
     yield
 
 

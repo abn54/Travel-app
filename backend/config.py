@@ -28,3 +28,18 @@ def get_openrouter_api_key() -> str:
 def openrouter_key_is_configured() -> bool:
     """Return chatbot configuration status without exposing the API key."""
     return bool(get_openrouter_api_key())
+
+
+def get_openai_api_key() -> str:
+    """Read the backend-only OpenAI key for the RAG context activity."""
+    return os.getenv("OPEN_AI_API_KEY", "").strip()
+
+
+def openai_key_is_configured() -> bool:
+    """Report configuration state without exposing the OpenAI key."""
+    return bool(get_openai_api_key())
+
+
+def get_openai_model() -> str:
+    """Return the configured low-cost text model, with a documented default."""
+    return os.getenv("OPEN_AI_MODEL", "gpt-5-mini").strip() or "gpt-5-mini"

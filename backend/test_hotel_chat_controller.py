@@ -23,8 +23,8 @@ LOCAL_HOTEL = LocalHotelCreate(
 )
 
 VALID_PROPOSAL = '''{
-  "sql": "SELECT h.name, n.stay_date, n.nightly_rate_usd, n.available_rooms FROM local_hotels h JOIN demo_hotel_nights n ON n.place_id = h.place_id WHERE n.stay_date = ? AND n.available_rooms > 0 ORDER BY n.nightly_rate_usd ASC LIMIT 10",
-  "parameters": ["2026-10-10"]
+  "sql": "SELECT h.name, z.postcode, n.stay_date, n.nightly_rate_usd, n.available_rooms FROM saved_hotels h JOIN saved_hotel_zips z ON z.hotel_id = h.hotel_id JOIN demo_hotel_nights n ON n.hotel_id = h.hotel_id WHERE z.postcode = ? AND n.stay_date = ? AND n.available_rooms > 0 ORDER BY n.nightly_rate_usd ASC LIMIT 10",
+  "parameters": ["16802", "2026-10-10"]
 }'''
 
 
@@ -58,17 +58,22 @@ class HotelChatControllerTests(unittest.TestCase):
         )
 
         self.assertEqual(mock_completion.call_count, 2)
-        self.assertEqual(result["parameters"], ["2026-10-10"])
+        self.assertEqual(result["parameters"], ["16802", "2026-10-10"])
         self.assertEqual(len(result["records"]), 1)
         self.assertEqual(result["records"][0]["name"], "Chat Test Hotel")
         self.assertIn("simulated course data", result["answer"])
         answer_messages = mock_completion.call_args_list[1].args[0]
         self.assertIn("Chat Test Hotel", answer_messages[1]["content"])
+        trace = hotel_chat_controller.get_conversation_trace(result["conversation_id"])
+        self.assertEqual(
+            [entry["stage"] for entry in trace],
+            ["user_question", "proposed_sql", "executed_sql", "retrieval_result", "final_answer"],
+        )
 
     @patch("hotel_chat_controller.request_chat_completion")
     def test_no_match_is_answered_after_a_successful_empty_local_query(self, mock_completion) -> None:
         mock_completion.side_effect = [
-            '''{"sql": "SELECT h.name, n.stay_date FROM local_hotels h JOIN demo_hotel_nights n ON n.place_id = h.place_id WHERE n.stay_date = ? LIMIT 10", "parameters": ["2026-12-31"]}''',
+            '''{"sql": "SELECT h.name, n.stay_date FROM saved_hotels h JOIN demo_hotel_nights n ON n.hotel_id = h.hotel_id WHERE n.stay_date = ? LIMIT 10", "parameters": ["2026-12-31"]}''',
             "There are no saved local hotel records for that date.",
         ]
 
@@ -80,8 +85,42 @@ class HotelChatControllerTests(unittest.TestCase):
         self.assertIn("no saved local hotel records", result["answer"])
         self.assertEqual(mock_completion.call_count, 2)
 
+    @patch("hotel_chat_controller.request_chat_completion")
+    def test_follow_up_uses_saved_conversation_context(self, mock_completion) -> None:
+        mock_completion.side_effect = [
+            VALID_PROPOSAL,
+            "Chat Test Hotel is available on Oct. 10.",
+            VALID_PROPOSAL,
+            "Chat Test Hotel also has simulated data for the follow-up.",
+        ]
+
+        first = hotel_chat_controller.ask_hotel_assistant("What is available on October 10?")
+        second = hotel_chat_controller.ask_hotel_assistant("What about October 12?", first["conversation_id"])
+
+        self.assertEqual(first["conversation_id"], second["conversation_id"])
+        proposal_messages = mock_completion.call_args_list[2].args[0]
+        self.assertTrue(any(message["content"] == "What is available on October 10?" for message in proposal_messages))
+        self.assertTrue(any(message["content"] == "Chat Test Hotel is available on Oct. 10." for message in proposal_messages))
+        self.assertEqual(len(second["conversation"]), 4)
+        database.initialize_database()
+        self.assertEqual(len(hotel_chat_controller.get_conversation_trace(first["conversation_id"])), 10)
+
+    @patch("hotel_chat_controller.request_chat_completion", side_effect=hotel_chat_controller.ChatProviderError)
+    def test_provider_failure_is_saved_without_a_fabricated_answer(self, _mock_completion) -> None:
+        with self.assertRaises(hotel_chat_controller.ChatProviderError):
+            hotel_chat_controller.ask_hotel_assistant("What is available on October 10?")
+
+        connection = database.get_connection()
+        try:
+            stages = [row[0] for row in connection.execute(
+                "SELECT stage FROM conversation_messages ORDER BY message_id"
+            ).fetchall()]
+        finally:
+            connection.close()
+        self.assertEqual(stages, ["user_question", "provider_error"])
+
     def test_disallowed_sql_is_rejected_before_any_database_write(self) -> None:
         with self.assertRaises(hotel_chat_controller.ChatQueryRejectedError):
-            hotel_chat_controller.validate_sql("DELETE FROM local_hotels LIMIT 1", [])
+            hotel_chat_controller.validate_sql("DELETE FROM saved_hotels LIMIT 1", [])
 
         self.assertEqual(len(local_hotel_controller.list_local_hotels()), 1)

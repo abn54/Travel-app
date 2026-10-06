@@ -34,10 +34,12 @@ const localMessage = ref('')
 const nearbyLocalError = ref('')
 const nearbyLocalMessage = ref('')
 const savedLocalPlaceIds = ref(new Set())
-const chatQuestion = ref('Which saved hotel has the lowest simulated nightly rate on 2026-10-10?')
+const chatQuestion = ref('Show the three cheapest saved hotels near ZIP 16803 with at least one room available for the night of October 11, 2026.')
 const chatLoading = ref(false)
 const chatError = ref('')
 const chatResult = ref(null)
+const chatConversationId = ref('')
+const chatMessages = ref([])
 const error = ref('')
 const message = ref('')
 
@@ -224,13 +226,27 @@ async function askHotelAssistant() {
     chatResult.value = await request('/hotel-chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ question: chatQuestion.value.trim() }),
+      body: JSON.stringify({
+        question: chatQuestion.value.trim(),
+        ...(chatConversationId.value ? { conversation_id: chatConversationId.value } : {}),
+      }),
     })
+    chatConversationId.value = chatResult.value.conversation_id
+    chatMessages.value = chatResult.value.conversation
+    chatQuestion.value = ''
   } catch (err) {
     chatError.value = err.message
   } finally {
     chatLoading.value = false
   }
+}
+
+function startNewConversation() {
+  chatConversationId.value = ''
+  chatMessages.value = []
+  chatResult.value = null
+  chatError.value = ''
+  chatQuestion.value = 'Show the three cheapest saved hotels near ZIP 16803 with at least one room available for the night of October 11, 2026.'
 }
 
 function chooseStay(stay) {
@@ -446,15 +462,28 @@ onMounted(async () => {
       <div class="section-heading">
         <p class="eyebrow tool-eyebrow">Grounded local assistant</p>
         <h2 id="assistant-heading">Ask about saved hotels</h2>
-        <p>The assistant plans a checked read-only SQLite query, retrieves matching local records, then explains only those records. It cannot make a booking or change saved data.</p>
+        <p>The backend sends the question and relevant conversation context to OpenAI, checks the proposed read-only SQLite query, retrieves local records, then asks OpenAI for a grounded answer. It cannot make a booking or change saved data.</p>
       </div>
       <form class="assistant-form" @submit.prevent="askHotelAssistant">
         <label for="hotel-question">Hotel question</label>
         <textarea id="hotel-question" v-model="chatQuestion" :disabled="chatLoading" maxlength="600" required></textarea>
-        <button class="primary-button" :disabled="chatLoading" type="submit">{{ chatLoading ? 'Checking local hotels…' : 'Ask local assistant' }}</button>
+        <div class="assistant-actions">
+          <button class="primary-button" :disabled="chatLoading" type="submit">{{ chatLoading ? 'Checking local hotels…' : 'Send question' }}</button>
+          <button v-if="chatConversationId" class="secondary-button" :disabled="chatLoading" type="button" @click="startNewConversation">New conversation</button>
+        </div>
       </form>
       <p v-if="chatLoading" class="inline-feedback" aria-live="polite">The assistant is proposing a safe query, checking local records, and grounding an answer…</p>
       <p v-if="chatError" class="message error" role="alert">{{ chatError }}</p>
+      <div v-if="chatMessages.length" class="chat-conversation" aria-live="polite">
+        <div class="conversation-heading">
+          <h3>Saved conversation</h3>
+          <small>Conversation ID: {{ chatConversationId }}</small>
+        </div>
+        <article v-for="entry in chatMessages" :key="entry.message_id" :class="['conversation-message', entry.role]">
+          <strong>{{ entry.role === 'user' ? 'You' : 'Assistant' }}</strong>
+          <p>{{ entry.content }}</p>
+        </article>
+      </div>
       <div v-if="chatResult" class="chat-result" aria-live="polite">
         <p class="chat-question"><strong>Your question:</strong> {{ chatResult.question }}</p>
         <div class="chat-answer">

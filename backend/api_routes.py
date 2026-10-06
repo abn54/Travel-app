@@ -3,13 +3,14 @@ from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, status
 
-from config import geoapify_key_is_configured, openrouter_key_is_configured
+from config import geoapify_key_is_configured, openai_key_is_configured, openrouter_key_is_configured
 from database import DATABASE_PATH
 from hotel_chat_controller import (
     ChatConfigurationError,
     ChatProviderError,
     ChatQueryRejectedError,
     ask_hotel_assistant,
+    get_conversation_trace,
 )
 from hotel_discovery_controller import discover_hotels
 from local_hotel_controller import (
@@ -49,11 +50,15 @@ def health() -> dict:
         if openrouter_key_is_configured()
         else "key is not configured"
     )
+    openai_configuration_status = (
+        "key is configured" if openai_key_is_configured() else "key is not configured"
+    )
     return {
         "ok": True,
         "database": DATABASE_PATH.name,
         "geoapify": configuration_status,
         "openrouter": chatbot_configuration_status,
+        "openai": openai_configuration_status,
     }
 
 
@@ -125,13 +130,19 @@ def delete_local_hotel_route(place_id: str) -> dict:
 def hotel_chat(payload: HotelChatRequest) -> dict:
     """Run the backend-only RAG workflow for saved local hotel data."""
     try:
-        return ask_hotel_assistant(payload.question)
+        return ask_hotel_assistant(payload.question, payload.conversation_id)
     except ChatConfigurationError as error:
         raise HTTPException(status_code=503, detail="Hotel assistant is not configured.") from error
     except ChatProviderError as error:
         raise HTTPException(status_code=502, detail="Hotel assistant is temporarily unavailable.") from error
     except ChatQueryRejectedError as error:
         raise HTTPException(status_code=422, detail=str(error)) from error
+
+
+@router.get("/hotel-conversations/{conversation_id}")
+def hotel_conversation(conversation_id: str) -> dict:
+    """Return an auditable saved trace after a refresh or backend restart."""
+    return {"conversation_id": conversation_id, "trace": get_conversation_trace(conversation_id)}
 
 
 @router.get("/search")

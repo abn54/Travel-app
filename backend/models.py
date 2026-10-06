@@ -38,3 +38,4 @@ class HotelChatRequest(BaseModel):
     """A natural-language question answered from saved local hotel data."""
 
     question: str = Field(min_length=3, max_length=600)
+    conversation_id: str | None = Field(default=None, min_length=8, max_length=80)

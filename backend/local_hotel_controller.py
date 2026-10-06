@@ -119,14 +119,41 @@ def save_local_hotel(payload: LocalHotelCreate) -> dict:
                     datetime.now(timezone.utc).isoformat(timespec="seconds"),
                 ),
             )
+            connection.execute(
+                """
+                INSERT INTO saved_hotels (
+                    hotel_id, name, address, locality, latitude, longitude, saved_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    payload.place_id,
+                    payload.name.strip() if payload.name else None,
+                    payload.address.strip() if payload.address else None,
+                    payload.locality.strip() if payload.locality else None,
+                    payload.latitude,
+                    payload.longitude,
+                    datetime.now(timezone.utc).isoformat(timespec="seconds"),
+                ),
+            )
+            connection.execute(
+                """
+                INSERT INTO saved_hotel_zips (hotel_id, postcode, locality)
+                VALUES (?, ?, ?)
+                """,
+                (
+                    payload.place_id,
+                    payload.search_postcode,
+                    payload.locality.strip() if payload.locality else None,
+                ),
+            )
             connection.executemany(
                 """
                 INSERT INTO demo_hotel_nights (
-                    place_id, stay_date, nightly_rate_usd, available_rooms
-                ) VALUES (?, ?, ?, ?)
+                    place_id, hotel_id, stay_date, nightly_rate_usd, available_rooms
+                ) VALUES (?, ?, ?, ?, ?)
                 """,
                 [
-                    (payload.place_id, stay_date, nightly_rate, rooms)
+                    (payload.place_id, payload.place_id, stay_date, nightly_rate, rooms)
                     for stay_date, nightly_rate, rooms in _demo_nights(payload.place_id)
                 ],
             )
@@ -153,6 +180,7 @@ def delete_local_hotel(place_id: str) -> dict:
         )
         if deleted.rowcount == 0:
             raise LocalHotelNotFoundError
+        connection.execute("DELETE FROM saved_hotels WHERE hotel_id = ?", (place_id,))
         connection.commit()
         return {"deleted_id": place_id}
     finally:

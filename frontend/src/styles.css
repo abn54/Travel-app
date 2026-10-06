@@ -114,8 +114,18 @@ select { min-width: 220px; }
 
 .assistant-panel { border-color: #d9c9f3; background: linear-gradient(135deg, #fff 0%, #fbf9ff 100%); }
 .assistant-form { display: grid; gap: 10px; margin-top: 22px; }
-.assistant-form button { width: fit-content; }
+.assistant-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.assistant-actions button { width: fit-content; }
 .assistant-panel .inline-feedback, .assistant-panel .message { margin-top: 16px; }
+.chat-conversation { display: grid; gap: 10px; margin-top: 18px; padding: 17px; border: 1px solid #d9d6e6; border-radius: 10px; background: #fff; }
+.conversation-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.conversation-heading h3 { margin: 0; color: var(--navy); font-size: 16px; }
+.conversation-heading small { color: var(--muted); font: 11px/1.3 ui-monospace, SFMono-Regular, Menlo, monospace; overflow-wrap: anywhere; }
+.conversation-message { padding: 12px 14px; border-radius: 9px; }
+.conversation-message strong { display: block; margin-bottom: 4px; color: var(--navy); font-size: 13px; }
+.conversation-message p { margin: 0; color: #283750; line-height: 1.45; white-space: pre-wrap; }
+.conversation-message.user { background: #edf5ff; }
+.conversation-message.assistant { background: #fffdf2; border-left: 4px solid var(--yellow); }
 .chat-result { display: grid; gap: 13px; margin-top: 18px; }
 .chat-question { margin: 0; color: #40516a; }
 .chat-answer { padding: 17px; border-left: 5px solid var(--yellow); border-radius: 9px; background: #fffdf2; }
@@ -159,7 +169,7 @@ td:nth-child(1), td:nth-child(5), td:nth-child(6), td:nth-child(7), td:nth-child
   .hero::after { right: -180px; bottom: -220px; }
   .search-card, .nearby-form, .booking-form, .history-form, .local-search-form { align-items: stretch; flex-direction: column; }
   .search-card { width: 100%; }
-  .search-card button, .nearby-form button, .booking-form button, .history-form button, .local-search-form button, .assistant-form button { width: 100%; }
+  .search-card button, .nearby-form button, .booking-form button, .history-form button, .local-search-form button, .assistant-actions button { width: 100%; }
   .booking-form select, .history-form select { flex-basis: auto; }
   .travel-tool { grid-template-columns: 1fr; padding: 22px; }
   .zip-action { min-width: 0; justify-self: start; }
